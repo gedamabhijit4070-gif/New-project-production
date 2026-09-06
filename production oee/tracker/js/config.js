@@ -8,8 +8,8 @@
 // OR click "⚡ Connect Supabase Database" in the app interface.
 // ==============================================================================
 export const SUPABASE_CONFIG = {
-  url: '',      // e.g. 'https://your-project-ref.supabase.co'
-  anonKey: ''   // e.g. 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    url: 'https://hqkxzxmpbocsqeurmvjs.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhxa3h6eG1wYm9jc3FldXJtdmpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2OTA4OTQsImV4cCI6MjEwNDI2Njg5NH0.ecizDXHhbaRLqswZWhVtzuljN_1Fi41SF2Yr8zazsUA'
 };
 
 export const MACHINES = [
