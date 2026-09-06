@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production & OEE Loss Tracker | Industrial Shop-Floor Dashboard</title>
+  <meta name="description" content="Precision shop-floor production and OEE loss tracker for 11 CNC, VMC, and HMC machines with Supabase database integration.">
+  
+  <!-- Google Fonts: JetBrains Mono & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/form.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/modal.css">
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div>
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="brand-section" id="nav-brand-home" title="Return to Machine Fleet Overview">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        </div>
+        <div class="brand-info">
+          <h1>PROD-TRACK OEE</h1>
+          <span>11-MACHINE CELL</span>
+        </div>
+      </div>
+
+      <!-- 3 Core Page Navigation Tabs (Using "Analytics" as requested) -->
+      <nav class="page-nav-tabs">
+        <button type="button" class="nav-tab-btn active" id="nav-btn-page1" data-target-view="view-landing">
+          <span>🏭</span> Machines Fleet
+        </button>
+        <button type="button" class="nav-tab-btn" id="nav-btn-page2" data-target-view="view-form">
+          <span>📝</span> Log Production
+        </button>
+        <button type="button" class="nav-tab-btn" id="nav-btn-page3" data-target-view="view-dashboard">
+          <span>📊</span> Analytics
+        </button>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Live Shift & Time Clock -->
+        <div class="live-clock-pill">
+          <span id="live-clock">--:--:--</span>
+          <span class="shift-badge" id="current-shift-badge">SHIFT A</span>
+        </div>
+
+        <!-- Supabase Connection Status Pill & Direct Connect Option -->
+        <button class="db-status-pill" id="db-status-pill" title="Click to configure Supabase database connection">
+          <span class="status-dot offline" id="db-status-dot"></span>
+          <span id="db-status-text">Database: Local Storage</span>
+          <span style="background:linear-gradient(135deg, var(--cyan-500), #0284c7); color:#ffffff; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.72rem; margin-left:4px;">⚡ Connect DB</span>
+        </button>
+
+        <!-- Quick History Logs Drawer Button -->
+        <button class="btn btn-secondary" id="btn-open-history" title="View historical production logs & export CSV">
+          <span>📋</span> Logs
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="app-container" id="main-content">
+      
+      <!-- =========================================================================
+           PAGE 1: MINIMALIST 11 MACHINES GRID (MACHINE NAMES ONLY)
+           ========================================================================= -->
+      <section id="view-landing" class="view-container">
+        <!-- Minimalist Hero Header -->
+        <div class="minimal-machines-hero">
+          <h2>Production Tracker</h2>
+          <p>Select any CNC, VMC, or HMC machine below to open its dedicated production log or inspect analytics.</p>
+        </div>
+
+        <!-- 11 Clean Machine Name Cards Grid -->
+        <div class="minimal-machines-grid" id="minimal-machines-grid">
+          <!-- Dynamically rendered via app.js matching exact user CSS -->
+        </div>
+      </section>
+
+
+      <!-- =========================================================================
+           PAGE 2: DEDICATED MACHINE PRODUCTION & 13-LOSS FILL-UP FORM
+           Optimized for Low Operator Effort, Touch Steppers & Zero Typing
+           ========================================================================= -->
+      <section id="view-form" class="view-container hidden">
+        <div class="form-view-container">
+          
+          <!-- Top Nav Bar with Back Button, Active Machine, Quick Switcher, & Clear Data -->
+          <div class="fillup-top-nav">
+            <div class="fillup-title-area">
+              <button type="button" class="back-btn" id="btn-back-fleet">
+                <span>←</span> Back to Fleet
+              </button>
+              <div class="active-machine-badge-group">
+                <h2 id="form-machine-name">CNC DX 200-1</h2>
+                <span class="machine-tag-pill" id="form-machine-badge">CNC CELL</span>
+              </div>
+            </div>
+
+            <!-- Quick Switcher Dropdown & Clear Data Button -->
+            <div class="fillup-nav-actions">
+              <div class="fillup-quick-switcher">
+                <label for="fillup-machine-select" style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Machine:</label>
+                <select id="fillup-machine-select">
+                  <!-- Populated via JS for all 11 machines -->
+                </select>
+              </div>
+
+              <!-- Dedicated Clear Data Button -->
+              <button type="button" class="btn-clear-top" id="btn-clear-top" title="Clear all entered production and loss data">
+                <span>🗑️</span> Clear Data
+              </button>
+            </div>
+          </div>
+
+          <!-- Prominent Database Status Banner with Option to Connect -->
+          <div class="db-status-banner offline" id="form-db-banner">
+            <div class="db-status-left">
+              <span class="status-dot offline" id="form-db-dot"></span>
+              <span id="form-db-text" style="font-weight:600;">Database: Local Storage Mode (Entries saved in browser)</span>
+            </div>
+            <button type="button" class="btn-db-connect-inline" id="btn-form-connect-db">
+              ⚡ Connect Supabase Database
+            </button>
+          </div>
+
+          <!-- Form Cards Stack -->
+          <form id="production-form" autocomplete="off">
+            <div class="form-cards-stack">
+              
+              <!-- PANEL 1: SHIFT & OPERATOR IDENTIFICATION -->
+              <div class="form-panel">
+                <div class="panel-header">
+                  <div class="panel-title">
+                    <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>1. Shift & Operator Header</span>
+                  </div>
+                  <span class="panel-step-badge">STEP 01</span>
+                </div>
+
+                <div class="grid-4-col">
+                  <div class="form-group">
+                    <label for="input-log-date">Production Date *</label>
+                    <input type="date" id="input-log-date" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="input-shift">Shift Selection *</label>
+                    <select id="input-shift" required>
+                      <option value="Shift A">Shift A (Morning - 07:00 to 15:30)</option>
+                      <option value="Shift B">Shift B (Evening - 15:30 to 00:00)</option>
+                      <option value="Shift C">Shift C (Night - 00:00 to 07:00)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="input-shift-hours">Shift Duration (Hours) *</label>
+                    <select id="input-shift-hours" required>
+                      <option value="8.5">8.5 Hours (510 min - Standard)</option>
+                      <option value="7.0">7.0 Hours (420 min - Night/Short)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="input-operator-name">Operator Name *</label>
+                    <input type="text" id="input-operator-name" placeholder="Enter Operator Name" required>
+                  </div>
+                </div>
+              </div>
+
+
+              <!-- PANEL 2: MULTI-PART PRODUCTION & CYCLE TIMES (WITH TOUCH STEPPERS) -->
+              <div class="form-panel">
+                <div class="panel-header">
+                  <div class="panel-title">
+                    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    <span>2. Multi-Part Production & Cycle Times</span>
+                  </div>
+                  <span class="panel-step-badge">STEP 02</span>
+                </div>
+
+                <div class="parts-row-container">
+                  <!-- Part 1 -->
+                  <div class="part-entry-row">
+                    <div class="part-badge-tag">PART 01</div>
+                    
+                    <div class="form-group">
+                      <label for="part1_name">Part Number 1</label>
+                      <input type="text" id="part1_name" placeholder="Enter Part Number">
+                    </div>
+
+                    <div class="input-with-steppers">
+                      <label for="part1_cycle_time">Cycle Time (Mins)</label>
+                      <input type="number" step="0.01" min="0" id="part1_cycle_time" placeholder="0.00">
+                      <!-- Cycle Time Quick Chips -->
+                      <div class="stepper-chip-group">
+                        <button type="button" class="stepper-btn" data-preset="part1_cycle_time" data-val="1.5">1.5m</button>
+                        <button type="button" class="stepper-btn" data-preset="part1_cycle_time" data-val="2.0">2.0m</button>
+                        <button type="button" class="stepper-btn" data-preset="part1_cycle_time" data-val="2.5">2.5m</button>
+                        <button type="button" class="stepper-btn" data-preset="part1_cycle_time" data-val="3.0">3.0m</button>
+                      </div>
+                    </div>
+
+                    <div class="input-with-steppers">
+                      <label for="part1_qty">Production Qty (Nos)</label>
+                      <input type="number" min="0" id="part1_qty" placeholder="0">
+                      <!-- Quantity Stepper Chips -->
+                      <div class="stepper-chip-group">
+                        <button type="button" class="stepper-btn" data-step="part1_qty" data-amount="1">+1</button>
+                        <button type="button" class="stepper-btn" data-step="part1_qty" data-amount="10">+10</button>
+                        <button type="button" class="stepper-btn" data-step="part1_qty" data-amount="50">+50</button>
+                        <button type="button" class="stepper-btn" data-step="part1_qty" data-amount="100">+100</button>
+                        <button type="button" class="stepper-btn danger" data-zero="part1_qty">0</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Part 2 -->
+                  <div class="part-entry-row">
+                    <div class="part-badge-tag">PART 02</div>
+                    
+                    <div class="form-group">
+                      <label for="part2_name">Part Number 2</label>
+                      <input type="text" id="part2_name" placeholder="Enter Part Number">
+                    </div>
+
+                    <div class="input-with-steppers">
+                      <label for="part2_cycle_time">Cycle Time (Mins)</label>
+                      <input type="number" step="0.01" min="0" id="part2_cycle_time" placeholder="0.00">
+                      <div class="stepper-chip-group">
+                        <button type="button" class="stepper-btn" data-preset="part2_cycle_time" data-val="1.5">1.5m</button>
+                        <button type="button" class="stepper-btn" data-preset="part2_cycle_time" data-val="2.0">2.0m</button>
+                        <button type="button" class="stepper-btn" data-preset="part2_cycle_time" data-val="2.5">2.5m</button>
+                        <button type="button" class="stepper-btn" data-preset="part2_cycle_time" data-val="3.0">3.0m</button>
+                      </div>
+                    </div>
+
+                    <div class="input-with-steppers">
+                      <label for="part2_qty">Production Qty (Nos)</label>
+                      <input type="number" min="0" id="part2_qty" placeholder="0">
+                      <div class="stepper-chip-group">
+                        <button type="button" class="stepper-btn" data-step="part2_qty" data-amount="1">+1</button>
+                        <button type="button" class="stepper-btn" data-step="part2_qty" data-amount="10">+10</button>
+                        <button type="button" class="stepper-btn" data-step="part2_qty" data-amount="50">+50</button>
+                        <button type="button" class="stepper-btn" data-step="part2_qty" data-amount="100">+100</button>
+                        <button type="button" class="stepper-btn danger" data-zero="part2_qty">0</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Part 3 -->
+                  <div class="part-entry-row">
+                    <div class="part-badge-tag">PART 03</div>
+                    
+                    <div class="form-group">
+                      <label for="part3_name">Part Number 3</label>
+                      <input type="text" id="part3_name" placeholder="Enter Part Number">
+                    </div>
+
+                    <div class="input-with-steppers">
+                      <label for="part3_cycle_time">Cycle Time (Mins)</label>
+                      <input type="number" step="0.01" min="0" id="part3_cycle_time" placeholder="0.00">
+                      <div class="stepper-chip-group">
+                        <button type="button" class="stepper-btn" data-preset="part3_cycle_time" data-val="1.5">1.5m</button>
+                        <button type="button" class="stepper-btn" data-preset="part3_cycle_time" data-val="2.0">2.0m</button>
+                        <button type="button" class="stepper-btn" data-preset="part3_cycle_time" data-val="2.5">2.5m</button>
+                        <button type="button" class="stepper-btn" data-preset="part3_cycle_time" data-val="3.0">3.0m</button>
+                      </div>
+                    </div>
+
+                    <div class="input-with-steppers">
+                      <label for="part3_qty">Production Qty (Nos)</label>
+                      <input type="number" min="0" id="part3_qty" placeholder="0">
+                      <div class="stepper-chip-group">
+                        <button type="button" class="stepper-btn" data-step="part3_qty" data-amount="1">+1</button>
+                        <button type="button" class="stepper-btn" data-step="part3_qty" data-amount="10">+10</button>
+                        <button type="button" class="stepper-btn" data-step="part3_qty" data-amount="50">+50</button>
+                        <button type="button" class="stepper-btn" data-step="part3_qty" data-amount="100">+100</button>
+                        <button type="button" class="stepper-btn danger" data-zero="part3_qty">0</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Scrap & Quality Yield Strip -->
+                <div class="scrap-quality-strip">
+                  <div class="form-group">
+                    <label for="summary-total-qty">Total Produced (Sum Qty)</label>
+                    <input type="text" id="summary-total-qty" value="0" readonly class="stat-input">
+                  </div>
+                  <div class="input-with-steppers">
+                    <label for="input-rejected-qty">Rejection / Scrap Qty (Nos)</label>
+                    <input type="number" min="0" id="input-rejected-qty" value="0" class="stat-input rej-input">
+                    <div class="stepper-chip-group">
+                      <button type="button" class="stepper-btn danger" data-step="input-rejected-qty" data-amount="-1">-1</button>
+                      <button type="button" class="stepper-btn danger" data-step="input-rejected-qty" data-amount="1">+1</button>
+                      <button type="button" class="stepper-btn danger" data-step="input-rejected-qty" data-amount="5">+5</button>
+                      <button type="button" class="stepper-btn danger" data-zero="input-rejected-qty">0</button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="summary-good-qty">Good Output Qty (Total - Rejection)</label>
+                    <input type="text" id="summary-good-qty" value="0" readonly class="stat-input good-input">
+                  </div>
+                </div>
+              </div>
+
+
+              <!-- PANEL 3: 13 DOWNTIME & STOPPAGE LOSSES (MINUTES) - ENHANCED ZERO-TYPING FORMAT -->
+              <div class="form-panel">
+                <div class="panel-header">
+                  <div class="panel-title">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>3. 13 Downtime & Stoppage Losses (Minutes)</span>
+                  </div>
+                  <div class="panel-actions">
+                    <button type="button" class="btn-panel-action" id="btn-zero-all-losses" title="Reset all 13 loss categories to 0 minutes">
+                      ✕ Zero All 13 Losses
+                    </button>
+                    <span class="panel-step-badge">STEP 03</span>
+                  </div>
+                </div>
+
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+                  Effortless entry: Tap <code style="color:var(--rose-400);">+5m</code>, <code style="color:var(--rose-400);">+15m</code>, <code style="color:var(--rose-400);">+30m</code>, or <code style="color:var(--rose-400);">+60m</code> chips to log stoppage minutes without typing.
+                </p>
+
+                <!-- 13 Losses Grid (Populated dynamically with high-speed stepper chips) -->
+                <div class="losses-13-grid" id="losses-13-grid-container">
+                  <!-- Generated by app.js -->
+                </div>
+
+                <div class="form-group" style="margin-top: 14px;">
+                  <label for="input-remarks">Shift Remarks & Breakdown Handover Notes</label>
+                  <textarea id="input-remarks" rows="2" placeholder="Optional notes: tool wear, maintenance calls, quality approvals or shift handover details..."></textarea>
+                </div>
+              </div>
+
+
+              <!-- PANEL 4: LIVE OEE AUTO-CALCULATED RIBBON -->
+              <div class="oee-calc-ribbon">
+                <div class="calc-block">
+                  <span class="calc-block-label">PLANNED TIME</span>
+                  <span class="calc-block-val" id="calc-planned-time">465 min</span>
+                </div>
+                <div class="calc-block">
+                  <span class="calc-block-label">TOTAL LOSSES</span>
+                  <span class="calc-block-val" style="color:var(--rose-400);" id="calc-total-losses">0 min</span>
+                </div>
+                <div class="calc-block">
+                  <span class="calc-block-label">OPERATING TIME</span>
+                  <span class="calc-block-val" style="color:var(--emerald-400);" id="calc-operating-time">465 min</span>
+                </div>
+                <div class="calc-block">
+                  <span class="calc-block-label">AVAILABILITY (A)</span>
+                  <span class="calc-block-val" style="color:var(--emerald-400);" id="calc-avail">100.0%</span>
+                </div>
+                <div class="calc-block">
+                  <span class="calc-block-label">PERFORMANCE (P)</span>
+                  <span class="calc-block-val" style="color:var(--cyan-400);" id="calc-perf">0.0%</span>
+                </div>
+                <div class="calc-block">
+                  <span class="calc-block-label">QUALITY (Q)</span>
+                  <span class="calc-block-val" style="color:var(--indigo-400);" id="calc-qual">100.0%</span>
+                </div>
+                <div class="calc-block">
+                  <span class="calc-block-label">REAL-TIME OEE</span>
+                  <span class="calc-block-val highlight-oee" id="calc-oee">0.0%</span>
+                </div>
+              </div>
+
+
+              <!-- ACTION FOOTER: CLEAR DATA + SAVE BUTTONS -->
+              <div class="form-action-footer">
+                <div class="footer-btn-group-left">
+                  <button type="button" class="btn btn-danger-clear" id="btn-reset-form-bottom" title="Clear all entered production and loss data">
+                    <span>🗑️</span> Clear All Entered Data
+                  </button>
+                </div>
+                <div class="footer-btn-group-right">
+                  <button type="submit" class="btn btn-success" id="btn-submit-entry" style="font-size:0.96rem; padding:12px 28px;">
+                    <span>💾</span> Save Production & Loss Record
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </form>
+
+        </div>
+      </section>
+
+
+      <!-- =========================================================================
+           PAGE 3: OEE & LOSS ANALYTICS DASHBOARD (TITLE UPDATED TO "ANALYTICS")
+           ========================================================================= -->
+      <section id="view-dashboard" class="view-container hidden">
+        <div class="dashboard-view-container">
+          
+          <!-- Dashboard Header Bar -->
+          <div class="dashboard-header-bar">
+            <div class="dashboard-title-area">
+              <h2>OEE & Loss Analytics Dashboard</h2>
+              <p>Real-time shop-floor telemetry, availability analytics, 13-loss breakdown & root-cause tracking.</p>
+            </div>
+            
+            <div class="dashboard-filters">
+              <!-- Live DB Streaming Badge -->
+              <div class="live-stream-badge">
+                <span class="ping-dot"></span>
+                <span id="dash-stream-label">LIVE DB STREAMING</span>
+              </div>
+
+              <!-- Quick Refresh / Export -->
+              <button class="btn btn-secondary" id="dash-btn-refresh">
+                <span>🔄</span> Refresh
+              </button>
+              <button class="btn btn-success" id="dash-btn-export">
+                <span>📥</span> Export Report
+              </button>
+            </div>
+          </div>
+
+          <!-- Periodic Analysis Control Console -->
+          <div class="periodic-control-console">
+            
+            <!-- Row 1: Horizon Tabs & Dynamic Interval Selector -->
+            <div class="console-row-horizon">
+              <div class="console-label-group">
+                <span class="console-kicker">1. Analysis Horizon</span>
+                <div class="period-tabs-group">
+                  <button type="button" class="period-tab-btn active" data-horizon="shift">
+                    <span>⏱️</span> Shift Horizon
+                  </button>
+                  <button type="button" class="period-tab-btn" data-horizon="today">
+                    <span>📅</span> Today (24H)
+                  </button>
+                  <button type="button" class="period-tab-btn" data-horizon="week">
+                    <span>📊</span> Past 7 Days
+                  </button>
+                  <button type="button" class="period-tab-btn" data-horizon="all">
+                    <span>📈</span> All-Time Matrix
+                  </button>
+                </div>
+              </div>
+
+              <div class="console-interval-picker">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <span class="console-kicker">Interval Filter</span>
+                  <select class="period-interval-select" id="dash-interval-select">
+                    <option value="ALL_SHIFTS">All Shifts (A, B, C)</option>
+                    <option value="Shift A">Shift A (Morning)</option>
+                    <option value="Shift B">Shift B (Evening)</option>
+                    <option value="Shift C">Shift C (Night)</option>
+                  </select>
+                </div>
+                <div class="active-period-tag" style="align-self: flex-end;">
+                  <span class="indicator-dot"></span>
+                  <span id="dash-active-period-text">Shift A Active</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Machine Roster Quick-Pills -->
+            <div class="console-row-machines">
+              <div class="console-machines-header">
+                <span class="console-kicker">2. Machining Fleet Selection</span>
+                <span class="active-machine-inspecting" id="dash-inspecting-label">Inspecting: Entire Machining Cell (11 Machines)</span>
+              </div>
+
+              <div class="machine-roster-pills-bar" id="dash-machine-pills">
+                <button type="button" class="machine-pill-btn pill-all active" data-filter-code="ALL">
+                  <span>🌐</span> All Fleet (11)
+                </button>
+                <div class="pill-divider"></div>
+                <span class="machine-group-tag tag-cnc">CNC</span>
+                <button type="button" class="machine-pill-btn pill-cnc" data-filter-code="CNC-DX200-1">CNC DX 200-1</button>
+                <button type="button" class="machine-pill-btn pill-cnc" data-filter-code="CNC-200-2">CNC 200-2</button>
+                <button type="button" class="machine-pill-btn pill-cnc" data-filter-code="CNC-DX250">CNC DX 250</button>
+                <button type="button" class="machine-pill-btn pill-cnc" data-filter-code="CNC-DX12B">CNC DX12B</button>
+                
+                <div class="pill-divider"></div>
+                <span class="machine-group-tag tag-vmc">VMC</span>
+                <button type="button" class="machine-pill-btn pill-vmc" data-filter-code="VMC-1050">VMC 1050</button>
+                <button type="button" class="machine-pill-btn pill-vmc" data-filter-code="VMC-1880">VMC 1880</button>
+                <button type="button" class="machine-pill-btn pill-vmc" data-filter-code="VMC-850">VMC 850</button>
+                <button type="button" class="machine-pill-btn pill-vmc" data-filter-code="VMC-HAAS">VMC HAAS</button>
+                <button type="button" class="machine-pill-btn pill-vmc" data-filter-code="VMC-PX20">VMC PX 20</button>
+
+                <div class="pill-divider"></div>
+                <span class="machine-group-tag tag-hmc">HMC</span>
+                <button type="button" class="machine-pill-btn pill-hmc" data-filter-code="HMC-1">HMC 1</button>
+                <button type="button" class="machine-pill-btn pill-hmc" data-filter-code="HMC-2">HMC 2</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- OEE Analytics Cockpit Hero Section -->
+          <div class="executive-cockpit-grid">
+            
+            <!-- Main Circular OEE Radial Gauge Card -->
+            <div class="gauge-hero-card">
+              <div class="gauge-hero-header">
+                <div class="gauge-title-box">
+                  <span class="gauge-badge-kicker">CELL AGGREGATE</span>
+                  <span class="gauge-main-title">Overall Equipment Effectiveness</span>
+                </div>
+                <span class="oee-rating-badge" id="dash-rating-badge">Optimal</span>
+              </div>
+
+              <!-- Circular SVG Radial Gauge -->
+              <div class="radial-gauge-display">
+                <svg class="oee-svg-ring" viewBox="0 0 130 130">
+                  <circle class="ring-bg" cx="65" cy="65" r="56" />
+                  <circle class="ring-fill" id="dash-gauge-fill" cx="65" cy="65" r="56" />
+                </svg>
+                <div class="radial-center-content">
+                  <div class="radial-oee-value">
+                    <span id="dash-oee-num">85.4</span>
+                    <span class="unit">%</span>
+                  </div>
+                  <span class="radial-oee-sub">Fleet OEE</span>
+                </div>
+              </div>
+
+              <div class="gauge-hero-footer">
+                <span class="target-marker">World-Class Target: <strong>85.0%</strong></span>
+                <span class="status-marker" id="dash-status-marker">● On Target</span>
+              </div>
+            </div>
+
+            <!-- 3 Core Pillars Stack -->
+            <div class="pillars-stack">
+              
+              <!-- Availability Pillar -->
+              <div class="pillar-card pillar-avail">
+                <div class="pillar-top">
+                  <div class="pillar-info">
+                    <span class="pillar-name">1. Availability Rate</span>
+                    <span class="pillar-sub">Operating Time vs. Planned Production Time</span>
+                  </div>
+                  <div class="pillar-val" id="dash-avail-num">90.2%</div>
+                </div>
+                <div class="pillar-progress-track">
+                  <div class="pillar-progress-bar" id="dash-avail-bar" style="width: 90.2%;"></div>
+                </div>
+                <div class="pillar-footer">
+                  <span>Planned: <strong id="dash-avail-planned">465m</strong></span>
+                  <span>Downtime Losses: <strong id="dash-avail-losses" style="color:var(--rose-400);">45m</strong></span>
+                  <span>Target: <strong>90.0%</strong></span>
+                </div>
+              </div>
+
+              <!-- Performance Pillar -->
+              <div class="pillar-card pillar-perf">
+                <div class="pillar-top">
+                  <div class="pillar-info">
+                    <span class="pillar-name">2. Performance Efficiency</span>
+                    <span class="pillar-sub">Ideal Operating Run Time vs. Net Operating Time</span>
+                  </div>
+                  <div class="pillar-val" id="dash-perf-num">96.5%</div>
+                </div>
+                <div class="pillar-progress-track">
+                  <div class="pillar-progress-bar" id="dash-perf-bar" style="width: 96.5%;"></div>
+                </div>
+                <div class="pillar-footer">
+                  <span>Ideal Run: <strong id="dash-perf-ideal">405m</strong></span>
+                  <span>Net Operating: <strong id="dash-perf-operating">420m</strong></span>
+                  <span>Target: <strong>95.0%</strong></span>
+                </div>
+              </div>
+
+              <!-- Quality Pillar -->
+              <div class="pillar-card pillar-qual">
+                <div class="pillar-top">
+                  <div class="pillar-info">
+                    <span class="pillar-name">3. Quality Yield Rate</span>
+                    <span class="pillar-sub">First-Time Good Parts vs. Total Production Output</span>
+                  </div>
+                  <div class="pillar-val" id="dash-qual-num">98.1%</div>
+                </div>
+                <div class="pillar-progress-track">
+                  <div class="pillar-progress-bar" id="dash-qual-bar" style="width: 98.1%;"></div>
+                </div>
+                <div class="pillar-footer">
+                  <span>Good Parts: <strong id="dash-qual-good" style="color:var(--emerald-400);">255</strong></span>
+                  <span>Rejections: <strong id="dash-qual-rej" style="color:var(--rose-400);">5</strong></span>
+                  <span>Target: <strong>99.0%</strong></span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Deep-Dive Loss Ribbon -->
+          <div class="loss-deepdive-ribbon">
+            <div class="deepdive-stat-box">
+              <span class="deepdive-label">Breakdown Downtime</span>
+              <span class="deepdive-value highlight-rose" id="ribbon-breakdown">0m</span>
+              <span class="deepdive-sub">Mechanical/Electrical stoppage</span>
+            </div>
+
+            <div class="deepdive-stat-box">
+              <span class="deepdive-label">Setup & Changeover</span>
+              <span class="deepdive-value highlight-amber" id="ribbon-setup">0m</span>
+              <span class="deepdive-sub">Part changes & tooling</span>
+            </div>
+
+            <div class="deepdive-stat-box">
+              <span class="deepdive-label">Waiting & Starvation</span>
+              <span class="deepdive-value" id="ribbon-waiting">0m</span>
+              <span class="deepdive-sub">No Material, No Operator, No Plan</span>
+            </div>
+
+            <div class="deepdive-stat-box highlight-prod-box">
+              <span class="deepdive-label">Total Produced Units</span>
+              <span class="deepdive-value" style="color:var(--cyan-400);" id="ribbon-produced-qty">0</span>
+              <span class="deepdive-sub">Good pieces ready for shipment</span>
+            </div>
+          </div>
+
+          <!-- Machine Comparison Matrix Section & Table -->
+          <div class="machine-matrix-section">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span>📋</span> 11-Machine Comprehensive Performance Matrix
+              </div>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Click any row to inspect machine</span>
+            </div>
+
+            <table class="machine-comparison-table">
+              <thead>
+                <tr>
+                  <th>Machine Name</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Produced</th>
+                  <th>Operating (m)</th>
+                  <th>Losses (m)</th>
+                  <th>Availability</th>
+                  <th>Performance</th>
+                  <th>Quality</th>
+                  <th>OEE</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="dash-matrix-tbody">
+                <!-- Dynamically generated for all 11 machines -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- "Why Does Loss Occur" Root-Cause Log Table -->
+          <div class="root-cause-section">
+            <div class="chart-header">
+              <div class="chart-title">
+                <span>🔍</span> "Why Does Loss Occur" Root-Cause Log Table
+              </div>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Synced from Supabase database entries</span>
+            </div>
+
+            <table class="root-cause-table">
+              <thead>
+                <tr>
+                  <th>Date & Shift</th>
+                  <th>Machine</th>
+                  <th>Primary Loss Issue</th>
+                  <th>Category</th>
+                  <th>Duration</th>
+                  <th>Operator & Root-Cause Handover Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="dash-root-cause-tbody">
+                <!-- Dynamically populated from recent logs -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- =========================================================================
+         MODAL 1: SUPABASE CONFIGURATION MODAL
+         ========================================================================= -->
+    <div class="modal-overlay hidden" id="modal-settings">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+            <span>⚡</span> Supabase Database Configuration
+          </div>
+          <button class="modal-close-btn" id="btn-close-settings">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:0.84rem; color:var(--text-secondary); margin-bottom:16px; line-height:1.45;">
+            Connect your Supabase project to sync records into <code>public.production_entries</code>.
+          </p>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label for="config-supabase-url">Supabase Project URL</label>
+            <input type="url" id="config-supabase-url" placeholder="https://xyzcompany.supabase.co">
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label for="config-supabase-key">Supabase Anon Key (Public API Key)</label>
+            <input type="password" id="config-supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+          </div>
+
+          <div id="settings-status-feedback" style="font-size:0.82rem; display:none; padding:10px; border-radius:6px;"></div>
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <button type="button" class="btn btn-danger-clear" id="btn-clear-local-db" style="font-size:0.8rem; padding:8px 12px;" title="Clear all local offline records">
+            🗑️ Clear Local Data
+          </button>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-secondary" id="btn-test-connection">Test Connection</button>
+            <button type="button" class="btn btn-primary" id="btn-save-settings">Save & Connect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 2: PRODUCTION HISTORY & EXPORT DRAWER
+         ========================================================================= -->
+    <div class="history-drawer-overlay" id="drawer-history-overlay">
+      <div class="history-drawer">
+        <div class="drawer-header">
+          <div class="drawer-title-group">
+            <h3>📋 Production & Loss History Logs</h3>
+            <p>Review logged shifts, analyze OEE metrics, and export reports.</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <button class="btn btn-success" id="btn-export-csv" title="Export all filtered records as CSV spreadsheet">
+              <span>📥</span> Export CSV
+            </button>
+            <button class="modal-close-btn" id="btn-close-history">&times;</button>
+          </div>
+        </div>
+
+        <!-- History Filter Toolbar -->
+        <div class="history-filter-toolbar">
+          <div class="history-filter-group">
+            <select class="filter-select" id="filter-history-machine">
+              <option value="ALL">All Machines</option>
+            </select>
+            <select class="filter-select" id="filter-history-shift">
+              <option value="ALL">All Shifts</option>
+              <option value="Shift A">Shift A</option>
+              <option value="Shift B">Shift B</option>
+              <option value="Shift C">Shift C</option>
+            </select>
+            <select class="filter-select" id="filter-history-date">
+              <option value="all">All Dates</option>
+              <option value="today">Today Only</option>
+              <option value="week">Past 7 Days</option>
+            </select>
+          </div>
+
+          <div>
+            <input type="text" id="filter-history-search" class="filter-select" placeholder="Search operator..." style="min-width:180px;">
+          </div>
+        </div>
+
+        <!-- Summary Strip -->
+        <div style="padding: 1rem 1.75rem 0;">
+          <div class="history-summary-strip">
+            <div class="h-stat-box">
+              <span class="h-stat-label">Total Logs</span>
+              <span class="h-stat-val" id="h-total-logs">0</span>
+            </div>
+            <div class="h-stat-box">
+              <span class="h-stat-label">Parts Produced</span>
+              <span class="h-stat-val" id="h-total-parts">0</span>
+            </div>
+            <div class="h-stat-box">
+              <span class="h-stat-label">Avg Shift OEE</span>
+              <span class="h-stat-val" style="color:var(--cyan-400);" id="h-avg-oee">0%</span>
+            </div>
+            <div class="h-stat-box">
+              <span class="h-stat-label">Total Loss (Mins)</span>
+              <span class="h-stat-val" style="color:var(--amber-400);" id="h-total-loss">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entries List -->
+        <div class="history-content" id="history-entries-list">
+          <!-- Populated dynamically via historyManager.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications Area -->
+    <div id="toast-container"></div>
+
+  </div>
+
+  <!-- Application Logic Modules -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
