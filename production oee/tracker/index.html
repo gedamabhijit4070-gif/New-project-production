@@ -26,6 +26,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Chart.js for High-End Animated Visuals -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- EmailJS for Background Email Alerts -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 
 <body>
@@ -415,6 +417,7 @@
               <div class="form-group">
                 <label for="input-shift">Shift *</label>
                 <select id="input-shift" required>
+                  <option value="" disabled selected>-- Select Shift --</option>
                   <option value="Shift A">Shift A (06:00 - 14:00)</option>
                   <option value="Shift B">Shift B (14:00 - 22:00)</option>
                   <option value="Shift C">Shift C (22:00 - 06:00)</option>
@@ -424,14 +427,18 @@
               <div class="form-group">
                 <label for="input-shift-hours">Shift Hours *</label>
                 <select id="input-shift-hours" required>
-                  <option value="8.5">8.5 Hours (465 Mins Planned)</option>
-                  <option value="7.0">7.0 Hours (390 Mins Planned)</option>
+                  <option value="" disabled selected>-- Select Hours --</option>
+                  <option value="8.5">8.5 Hours (465 Mins)</option>
+                  <option value="8.0">8.0 Hours (480 Mins)</option>
+                  <option value="7.5">7.5 Hours (450 Mins)</option>
+                  <option value="7.0">7.0 Hours (420 Mins)</option>
+                  <option value="6.0">6.0 Hours (360 Mins)</option>
                 </select>
               </div>
 
               <div class="form-group">
                 <label for="input-operator">Operator Name *</label>
-                <input type="text" id="input-operator" placeholder="Enter Operator Name" required />
+                <input type="text" id="input-operator" placeholder="Enter operator name" required />
               </div>
             </div>
           </div>
@@ -460,13 +467,11 @@
                 </div>
                 <div class="form-group">
                   <label for="input-part1-cycle">Cycle Time (Mins) *</label>
-                  <input type="number" step="0.1" min="0" inputmode="decimal" id="input-part1-cycle" placeholder="0.0"
-                    value="0" required />
+                  <input type="number" step="0.1" min="0" inputmode="decimal" id="input-part1-cycle" placeholder="0.0" required />
                 </div>
                 <div class="form-group">
                   <label for="input-part1-qty">Part 1 Quantity *</label>
-                  <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-part1-qty" placeholder="0"
-                    value="0" required />
+                  <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-part1-qty" placeholder="0" required />
                 </div>
               </div>
 
@@ -479,13 +484,11 @@
                 </div>
                 <div class="form-group">
                   <label for="input-part2-cycle">Cycle Time (Mins)</label>
-                  <input type="number" step="0.1" min="0" inputmode="decimal" id="input-part2-cycle" placeholder="0"
-                    value="0" />
+                  <input type="number" step="0.1" min="0" inputmode="decimal" id="input-part2-cycle" placeholder="0" />
                 </div>
                 <div class="form-group">
                   <label for="input-part2-qty">Part 2 Quantity</label>
-                  <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-part2-qty" placeholder="0"
-                    value="0" />
+                  <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-part2-qty" placeholder="0" />
                 </div>
               </div>
 
@@ -498,13 +501,11 @@
                 </div>
                 <div class="form-group">
                   <label for="input-part3-cycle">Cycle Time (Mins)</label>
-                  <input type="number" step="0.1" min="0" inputmode="decimal" id="input-part3-cycle" placeholder="0"
-                    value="0" />
+                  <input type="number" step="0.1" min="0" inputmode="decimal" id="input-part3-cycle" placeholder="0" />
                 </div>
                 <div class="form-group">
                   <label for="input-part3-qty">Part 3 Quantity</label>
-                  <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-part3-qty" placeholder="0"
-                    value="0" />
+                  <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-part3-qty" placeholder="0" />
                 </div>
               </div>
             </div>
@@ -513,7 +514,7 @@
             <div style="margin-top: 18px; max-width: 260px;">
               <div class="form-group">
                 <label for="input-rejected-qty">Total Rejected / Scrap Quantity</label>
-                <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-rejected-qty" value="0" />
+                <input type="number" min="0" inputmode="numeric" pattern="[0-9]*" id="input-rejected-qty" placeholder="0" />
               </div>
             </div>
           </div>
@@ -536,57 +537,43 @@
               Select a downtime loss category from the dropdown to quickly log minutes, or enter durations directly in the loss cards below.
             </p>
 
-            <!-- Downtime Loss Dropdown Quick-Logger Console -->
+            <!-- Downtime Loss Quick-Logger (Simple Flat Dropdown) -->
             <div class="loss-dropdown-console" id="loss-dropdown-console">
               <div class="loss-dropdown-header">
                 <div class="loss-dropdown-title">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
-                  <span>Downtime Loss Dropdown Quick-Selector</span>
+                  <span>Quick Log Downtime Loss</span>
                 </div>
-                <span class="loss-dropdown-hint">Pick loss & apply stoppage time</span>
+                <span class="loss-dropdown-hint">Select loss → enter minutes → apply</span>
               </div>
               <div class="loss-dropdown-controls">
                 <div class="loss-select-group">
-                  <label for="select-downtime-loss">Downtime Loss Category *</label>
+                  <label for="select-downtime-loss">Loss Category</label>
                   <select id="select-downtime-loss" class="dropdown-loss-select">
-                    <option value="" disabled selected>-- Select Downtime Loss Reason --</option>
-                    <optgroup label="🛠️ Tooling & Fixture Losses">
-                      <option value="loss_tool_insert">Tool & Insert Loss (Wear, Breakage, Change)</option>
-                      <option value="loss_jig_fixture">Jig & Fixture Issue (Clamping, Alignment)</option>
-                    </optgroup>
-                    <optgroup label="⚡ Equipment Breakdown">
-                      <option value="loss_breakdown">Breakdown Loss (Mechanical, Electrical, Spindle)</option>
-                    </optgroup>
-                    <optgroup label="🔄 Process & Setup">
-                      <option value="loss_setup">Setup (Job Setting & Proving)</option>
-                      <option value="loss_startup">Start Up (Warm-up & First-off Check)</option>
-                      <option value="loss_programming">Programming Loss (CNC Code / Offset Edit)</option>
-                    </optgroup>
-                    <optgroup label="📦 Logistics & Planning">
-                      <option value="loss_no_material">No Material (Raw Material / Blank Shortage)</option>
-                      <option value="loss_no_plan">No Plan (Waiting for Schedule)</option>
-                      <option value="loss_document">Document Loss (Drawing, Route Card Delay)</option>
-                    </optgroup>
-                    <optgroup label="👥 Manpower & Quality">
-                      <option value="loss_no_operator">No Operator (Absenteeism / Reliever Delay)</option>
-                      <option value="loss_measurement">Measurement & Adjustment (Caliper / Micrometer)</option>
-                      <option value="loss_quality_insp">Quality Inspection (QA Stoppage)</option>
-                    </optgroup>
-                    <optgroup label="⏱️ Performance & Maintenance">
-                      <option value="loss_speed">Speed Loss (Reduced Feed Rate / Speed)</option>
-                      <option value="loss_cleaning">Cleaning (Chip Clearance, Swarf Removal)</option>
-                    </optgroup>
-                    <optgroup label="⚙️ Other Losses">
-                      <option value="loss_other">Other Losses (Power, Utility, Miscellaneous)</option>
-                    </optgroup>
+                    <option value="" disabled selected>-- Select Loss --</option>
+                    <option value="loss_breakdown">Breakdown</option>
+                    <option value="loss_no_plan">No Plan</option>
+                    <option value="loss_no_material">No Material</option>
+                    <option value="loss_no_operator">No Operator</option>
+                    <option value="loss_startup">Start Up</option>
+                    <option value="loss_setup">Setup</option>
+                    <option value="loss_tool_insert">Tool &amp; Insert Loss</option>
+                    <option value="loss_jig_fixture">Jig &amp; Fixture</option>
+                    <option value="loss_programming">Programming</option>
+                    <option value="loss_measurement">Measurement</option>
+                    <option value="loss_document">Document Loss</option>
+                    <option value="loss_speed">Speed Loss</option>
+                    <option value="loss_quality_insp">Quality Inspection</option>
+                    <option value="loss_cleaning">Cleaning</option>
+                    <option value="loss_other">Other Losses</option>
                   </select>
                 </div>
                 <div class="loss-minutes-group">
-                  <label for="input-dropdown-loss-mins">Duration (Mins)</label>
+                  <label for="input-dropdown-loss-mins">Minutes</label>
                   <div class="loss-stepper-wrap">
-                    <input type="number" id="input-dropdown-loss-mins" min="0" step="1" inputmode="numeric" placeholder="Mins" value="15" />
+                    <input type="number" id="input-dropdown-loss-mins" min="0" step="1" inputmode="numeric" placeholder="0" />
                     <div class="dropdown-loss-chips">
                       <button type="button" class="btn-dropdown-chip" data-mins="5">+5m</button>
                       <button type="button" class="btn-dropdown-chip" data-mins="15">+15m</button>
@@ -595,15 +582,15 @@
                     </div>
                   </div>
                 </div>
-                <div class="loss-btn-group">
-                  <button type="button" id="btn-apply-dropdown-loss" class="btn btn-primary btn-apply-loss">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Apply Loss
-                  </button>
-                </div>
+              </div>
+              <div class="loss-btn-group">
+                <button type="button" id="btn-apply-dropdown-loss" class="btn btn-primary btn-apply-loss">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Apply Loss
+                </button>
               </div>
               <div class="loss-dropdown-status" id="loss-dropdown-status" style="display: none;"></div>
             </div>

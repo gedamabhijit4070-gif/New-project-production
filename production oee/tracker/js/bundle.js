@@ -9,35 +9,35 @@
 // ==============================================================================
 
 const MACHINES = [
-  { id: 'm1',  code: 'CNC-DX200-1', name: 'CNC DX 200-1', category: 'CNC' },
-  { id: 'm2',  code: 'CNC-200-2',   name: 'CNC 200-2',   category: 'CNC' },
-  { id: 'm3',  code: 'CNC-DX250',   name: 'CNC DX 250',   category: 'CNC' },
-  { id: 'm4',  code: 'CNC-DX12B',   name: 'CNC DX12B',   category: 'CNC' },
-  { id: 'm5',  code: 'VMC-1050',    name: 'VMC 1050',    category: 'VMC' },
-  { id: 'm6',  code: 'VMC-1880',    name: 'VMC 1880',    category: 'VMC' },
-  { id: 'm7',  code: 'VMC-850',     name: 'VMC 850',     category: 'VMC' },
-  { id: 'm8',  code: 'VMC-HAAS',    name: 'VMC HAAS',    category: 'VMC' },
-  { id: 'm9',  code: 'VMC-PX20',    name: 'VMC PX 20',    category: 'VMC' },
-  { id: 'm10', code: 'HMC-1',       name: 'HMC 1',       category: 'HMC' },
-  { id: 'm11', code: 'HMC-2',       name: 'HMC 2',       category: 'HMC' }
+  { id: 'm1', code: 'CNC-DX200-1', name: 'CNC DX 200-1', category: 'CNC' },
+  { id: 'm2', code: 'CNC-200-2', name: 'CNC 200-2', category: 'CNC' },
+  { id: 'm3', code: 'CNC-DX250', name: 'CNC DX 250', category: 'CNC' },
+  { id: 'm4', code: 'CNC-DX12B', name: 'CNC DX12B', category: 'CNC' },
+  { id: 'm5', code: 'VMC-1050', name: 'VMC 1050', category: 'VMC' },
+  { id: 'm6', code: 'VMC-1880', name: 'VMC 1880', category: 'VMC' },
+  { id: 'm7', code: 'VMC-850', name: 'VMC 850', category: 'VMC' },
+  { id: 'm8', code: 'VMC-HAAS', name: 'VMC HAAS', category: 'VMC' },
+  { id: 'm9', code: 'VMC-PX20', name: 'VMC PX 20', category: 'VMC' },
+  { id: 'm10', code: 'HMC-1', name: 'HMC 1', category: 'HMC' },
+  { id: 'm11', code: 'HMC-2', name: 'HMC 2', category: 'HMC' }
 ];
 
 const LOSS_FIELDS = [
-  { key: 'loss_breakdown',      label: 'Breakdown Loss',           category: 'Equipment' },
-  { key: 'loss_no_plan',        label: 'No Plan',                  category: 'Management' },
-  { key: 'loss_no_material',    label: 'No Material',              category: 'Logistics' },
-  { key: 'loss_no_operator',    label: 'No Operator',              category: 'Manpower' },
-  { key: 'loss_startup',        label: 'Start Up',                 category: 'Process' },
-  { key: 'loss_setup',          label: 'Setup',                    category: 'Process' },
-  { key: 'loss_tool_insert',    label: 'Tool & Insert Loss',       category: 'Tooling' },
-  { key: 'loss_jig_fixture',    label: 'Jig & Fixture Issue',      category: 'Tooling' },
-  { key: 'loss_programming',    label: 'Programming Loss',         category: 'Process' },
-  { key: 'loss_measurement',    label: 'Measurement & Adjustment', category: 'Quality' },
-  { key: 'loss_document',       label: 'Document Loss',            category: 'Management' },
-  { key: 'loss_speed',          label: 'Speed Loss',               category: 'Performance' },
-  { key: 'loss_quality_insp',   label: 'Quality Inspection',       category: 'Quality' },
-  { key: 'loss_cleaning',       label: 'Cleaning',                 category: 'Maintenance' },
-  { key: 'loss_other',          label: 'Other Losses',             category: 'Other' }
+  { key: 'loss_breakdown', label: 'Breakdown Loss', category: 'Equipment' },
+  { key: 'loss_no_plan', label: 'No Plan', category: 'Management' },
+  { key: 'loss_no_material', label: 'No Material', category: 'Logistics' },
+  { key: 'loss_no_operator', label: 'No Operator', category: 'Manpower' },
+  { key: 'loss_startup', label: 'Start Up', category: 'Process' },
+  { key: 'loss_setup', label: 'Setup', category: 'Process' },
+  { key: 'loss_tool_insert', label: 'Tool & Insert Loss', category: 'Tooling' },
+  { key: 'loss_jig_fixture', label: 'Jig & Fixture Issue', category: 'Tooling' },
+  { key: 'loss_programming', label: 'Programming Loss', category: 'Process' },
+  { key: 'loss_measurement', label: 'Measurement & Adjustment', category: 'Quality' },
+  { key: 'loss_document', label: 'Document Loss', category: 'Management' },
+  { key: 'loss_speed', label: 'Speed Loss', category: 'Performance' },
+  { key: 'loss_quality_insp', label: 'Quality Inspection', category: 'Quality' },
+  { key: 'loss_cleaning', label: 'Cleaning', category: 'Maintenance' },
+  { key: 'loss_other', label: 'Other Losses', category: 'Other' }
 ];
 
 const SUPABASE_CONFIG = {
@@ -124,7 +124,7 @@ function getSupabaseConfig() {
 function saveSupabaseConfig(url, key) {
   try {
     localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify({ url: url.trim(), key: key.trim() }));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function testSupabaseConnection(url, key) {
@@ -170,7 +170,7 @@ async function getProductionEntries() {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        try { localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(data)); } catch (_) {}
+        try { localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(data)); } catch (_) { }
         return data;
       }
     } catch (err) {
@@ -194,7 +194,7 @@ async function saveProductionEntry(entry) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_ENTRIES);
     currentEntries = raw ? JSON.parse(raw) : [];
-  } catch (_) {}
+  } catch (_) { }
 
   const existingIdx = currentEntries.findIndex(e => e.id === entry.id);
   if (existingIdx >= 0) {
@@ -202,7 +202,7 @@ async function saveProductionEntry(entry) {
   } else {
     currentEntries.unshift(entry);
   }
-  try { localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(currentEntries)); } catch (_) {}
+  try { localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(currentEntries)); } catch (_) { }
 
   if (isSupabaseActive && supabaseClient) {
     try {
@@ -223,7 +223,7 @@ async function deleteProductionEntry(id) {
     let currentEntries = raw ? JSON.parse(raw) : [];
     currentEntries = currentEntries.filter(e => e.id !== id);
     localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(currentEntries));
-  } catch (_) {}
+  } catch (_) { }
 
   if (isSupabaseActive && supabaseClient) {
     try {
@@ -237,7 +237,7 @@ async function deleteProductionEntry(id) {
 async function clearAllProductionEntries() {
   try {
     localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify([]));
-  } catch (_) {}
+  } catch (_) { }
 
   if (isSupabaseActive && supabaseClient) {
     try {
@@ -786,7 +786,7 @@ async function seedDemoShiftData() {
 
   try {
     localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(generatedRecords));
-  } catch (_) {}
+  } catch (_) { }
 
   if (isSupabaseActive && supabaseClient) {
     try {
@@ -840,8 +840,8 @@ function exportEntriesToCSV(entries, filename = 'Production_Entries_Export') {
   };
 
   const rows = entries.map(e => {
-    const productivityRate = e.productivity_rate !== undefined 
-      ? e.productivity_rate 
+    const productivityRate = e.productivity_rate !== undefined
+      ? e.productivity_rate
       : (Number(e.operating_time_mins) > 0 ? Number(((Number(e.good_qty) * 60) / Number(e.operating_time_mins)).toFixed(1)) : 0);
 
     const baseRow = [
@@ -2075,6 +2075,25 @@ function setupEventListeners() {
     }
   });
 
+  // Automatically select Shift Hours based on Shift:
+  // Shift A & Shift B -> 8.5 Hours
+  // Shift C           -> 7.0 Hours
+  if (dom.inputShift) {
+    const handleShiftAutoSelect = () => {
+      const shift = dom.inputShift.value;
+      if (dom.inputShiftHours) {
+        if (shift === 'Shift A' || shift === 'Shift B') {
+          dom.inputShiftHours.value = '8.5';
+        } else if (shift === 'Shift C') {
+          dom.inputShiftHours.value = '7.0';
+        }
+      }
+      updateLiveOeeCalculations();
+    };
+    dom.inputShift.addEventListener('change', handleShiftAutoSelect);
+    dom.inputShift.addEventListener('input', handleShiftAutoSelect);
+  }
+
   if (dom.form) dom.form.addEventListener('submit', handleFormSubmit);
 
   if (dom.btnGlobalExport) {
@@ -2111,7 +2130,7 @@ function setupEventListeners() {
       const currentVal = parseInt(targetInput.value, 10) || 0;
       targetInput.value = Math.max(0, currentVal + addMinutes);
       if ('vibrate' in navigator) {
-        try { navigator.vibrate(30); } catch (_) {}
+        try { navigator.vibrate(30); } catch (_) { }
       }
       updateLiveOeeCalculations();
     }
@@ -2127,7 +2146,7 @@ function setupEventListeners() {
       const current = parseInt(inputMins.value, 10) || 0;
       inputMins.value = Math.max(0, current + addMins);
       if ('vibrate' in navigator) {
-        try { navigator.vibrate(25); } catch (_) {}
+        try { navigator.vibrate(25); } catch (_) { }
       }
     }
   });
@@ -2349,35 +2368,40 @@ function openMachineFillup(machineCode) {
 }
 
 function setDefaultFormValues() {
+  // Set today's date automatically (the only sensible default)
   const today = new Date().toISOString().split('T')[0];
   if (dom.inputDate) dom.inputDate.value = today;
-  if (dom.inputShift) dom.inputShift.value = getCurrentShift();
-  if (dom.inputShiftHours) dom.inputShiftHours.value = '8.5';
-  if (dom.inputOperator && !dom.inputOperator.value) dom.inputOperator.value = 'Operator 1';
 
-  if (dom.inputPart1Name) dom.inputPart1Name.value = 'Pinion-Shaft-45';
-  if (dom.inputPart1Cycle) dom.inputPart1Cycle.value = '2.2';
-  if (dom.inputPart1Qty) dom.inputPart1Qty.value = '120';
+  // Clear all selects / inputs — no pre-filled dummy data
+  if (dom.inputShift) dom.inputShift.value = '';
+  if (dom.inputShiftHours) dom.inputShiftHours.value = '';
+  if (dom.inputOperator) dom.inputOperator.value = '';
+
+  if (dom.inputPart1Name) dom.inputPart1Name.value = '';
+  if (dom.inputPart1Cycle) dom.inputPart1Cycle.value = '';
+  if (dom.inputPart1Qty) dom.inputPart1Qty.value = '';
 
   if (dom.inputPart2Name) dom.inputPart2Name.value = '';
-  if (dom.inputPart2Cycle) dom.inputPart2Cycle.value = '0';
-  if (dom.inputPart2Qty) dom.inputPart2Qty.value = '0';
+  if (dom.inputPart2Cycle) dom.inputPart2Cycle.value = '';
+  if (dom.inputPart2Qty) dom.inputPart2Qty.value = '';
 
   if (dom.inputPart3Name) dom.inputPart3Name.value = '';
-  if (dom.inputPart3Cycle) dom.inputPart3Cycle.value = '0';
-  if (dom.inputPart3Qty) dom.inputPart3Qty.value = '0';
+  if (dom.inputPart3Cycle) dom.inputPart3Cycle.value = '';
+  if (dom.inputPart3Qty) dom.inputPart3Qty.value = '';
 
-  if (dom.inputRejectedQty) dom.inputRejectedQty.value = '2';
+  if (dom.inputRejectedQty) dom.inputRejectedQty.value = '';
 
+  // Reset all 15 loss fields to 0
   LOSS_FIELDS.forEach(f => {
     const el = document.getElementById(f.key);
     if (el) el.value = '0';
   });
 
+  // Reset dropdown quick-selector
   const selectLoss = dom.selectDowntimeLoss || document.getElementById('select-downtime-loss');
   if (selectLoss) selectLoss.selectedIndex = 0;
   const inputMins = dom.inputDropdownLossMins || document.getElementById('input-dropdown-loss-mins');
-  if (inputMins) inputMins.value = '15';
+  if (inputMins) inputMins.value = '';
   const statusEl = dom.lossDropdownStatus || document.getElementById('loss-dropdown-status');
   if (statusEl) statusEl.style.display = 'none';
 
@@ -2442,6 +2466,82 @@ function updateLiveOeeCalculations() {
   }
 
   return oeeResult;
+}
+
+// ==============================================================================
+// EMAILJS BACKGROUND ALERT — fires silently when critical loss > 90 mins
+// Uses EmailJS public CDN (no server required, works from file:// and http://)
+// Service ID & Template must match your EmailJS dashboard
+// ==============================================================================
+
+const EMAIL_CONFIG = {
+  // ─────────────────────────────────────────────────────────────────────
+  // STEP: Sign up free at https://emailjs.com, create a service and
+  //       template, then replace the three values below.
+  // ─────────────────────────────────────────────────────────────────────
+  serviceId: 'service_prodtrack',   // Your EmailJS Service ID
+  templateId: 'template_1ekvs05',   // Your EmailJS Template ID
+  publicKey: 'Ev55sXxAA4E5n8dIF'      // Your EmailJS Public Key
+};
+
+// Loss keys that trigger email when any single one > 90 mins
+const CRITICAL_LOSS_KEYS = [
+  'loss_breakdown',
+  'loss_no_operator'
+];
+
+/**
+ * Send a silent background email via EmailJS when critical downtime > 90 mins.
+ * No alert or notification is shown on the UI.
+ * @param {object} entry  The production entry record that was saved
+ */
+async function sendDowntimeAlertEmail(entry) {
+  // Check if EmailJS SDK is loaded
+  if (typeof emailjs === 'undefined') {
+    console.warn('[Alert] EmailJS SDK not loaded — skipping alert email.');
+    return;
+  }
+
+  // Find which critical losses breached the 90-min threshold
+  const breachedLosses = [];
+  CRITICAL_LOSS_KEYS.forEach(key => {
+    const mins = Number(entry[key]) || 0;
+    if (mins > 90) {
+      const meta = LOSS_FIELDS.find(f => f.key === key);
+      breachedLosses.push({ label: meta ? meta.label : key, mins });
+    }
+  });
+
+  if (breachedLosses.length === 0) return; // Nothing breached threshold
+
+  const breachSummary = breachedLosses.map(b => `${b.label}: ${b.mins} mins`).join(', ');
+  const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true });
+
+  const templateParams = {
+    to_email: 'gedamabhijit4070@gmail.com',
+    machine_name: entry.machine_name || entry.machine_code,
+    machine_code: entry.machine_code,
+    log_date: entry.log_date,
+    shift: entry.shift,
+    operator: entry.operator_name || 'N/A',
+    breach_summary: breachSummary,
+    breakdown_mins: Number(entry.loss_breakdown) || 0,
+    no_operator_mins: Number(entry.loss_no_operator) || 0,
+    total_loss_mins: Number(entry.total_losses_mins) || 0,
+    availability: entry.availability_rate,
+    oee: entry.oee_rate,
+    remarks: entry.remarks || '',
+    timestamp: nowStr
+  };
+
+  try {
+    emailjs.init({ publicKey: EMAIL_CONFIG.publicKey });
+    await emailjs.send(EMAIL_CONFIG.serviceId, EMAIL_CONFIG.templateId, templateParams);
+    console.log('[Alert] Downtime alert email sent silently for', entry.machine_name);
+  } catch (err) {
+    // Fail silently — never show error to operator
+    console.warn('[Alert] Email send failed (non-critical):', err);
+  }
 }
 
 async function handleFormSubmit(e) {
@@ -2529,6 +2629,10 @@ async function handleFormSubmit(e) {
   try {
     await saveProductionEntry(entryRecord);
     showToast(`✓ Shift record saved for ${state.currentMachine.name}! (OEE: ${oeeResult.oeeRate}%)`, 'success');
+
+    // Fire background email alert silently — no UI notification
+    sendDowntimeAlertEmail(entryRecord);
+
     selectMachine(state.currentMachine.code);
     switchView('view-analytics');
   } catch (err) {
@@ -2536,3 +2640,4 @@ async function handleFormSubmit(e) {
     showToast('Failed to save record.', 'error');
   }
 }
+
