@@ -630,3 +630,135 @@
   gap: 14px;
   padding-bottom: 40px;
 }
+
+/* ==========================================
+   ANDROID / MOBILE FORM OPTIMIZATIONS
+   Touch-friendly inputs, selects, buttons,
+   full-width layout, readable type scale.
+   ========================================== */
+@media (max-width: 768px) {
+  /* Form panels: tighter padding */
+  .form-panel { padding: 16px; }
+
+  /* Grid collapses to 2 or 1 col */
+  .grid-4-col {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .parts-row-container { gap: 14px; }
+  .part-entry-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Inputs & selects: 48px touch height */
+  .form-group input,
+  .form-group select,
+  .form-group textarea,
+  .fillup-quick-switcher select,
+  .dropdown-loss-select,
+  #input-dropdown-loss-mins {
+    min-height: 48px;
+    font-size: 1rem;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    width: 100%;
+  }
+  .form-group label { font-size: 0.82rem; }
+
+  /* Loss grid: 1 col on mobile */
+  .losses-13-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .loss-input-card { padding: 12px; }
+  .loss-name { font-size: 0.82rem; }
+  .loss-number-field {
+    min-height: 48px;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  /* Dropdown quick-logger: stack vertically */
+  .loss-dropdown-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .loss-select-group,
+  .loss-minutes-group { width: 100%; }
+  .loss-stepper-wrap { flex-direction: column; gap: 8px; }
+  .dropdown-loss-chips {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .btn-dropdown-chip {
+    min-height: 44px;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+  }
+  .btn-apply-loss {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+  }
+
+  /* Quick-chip on loss cards */
+  .btn-loss-chip {
+    min-height: 40px;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  /* OEE Ribbon: wrap to 2 col on mobile */
+  .oee-calc-ribbon {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 16px;
+    gap: 12px;
+  }
+  .calc-block-val { font-size: 1.15rem; }
+  .calc-block-val.highlight-oee { font-size: 1.4rem; }
+
+  /* Form action footer: stack buttons */
+  .form-action-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .form-action-footer .btn {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+    justify-content: center;
+  }
+
+  /* Machine cards */
+  .minimal-machines-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Back button */
+  .back-btn {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 0.84rem;
+  }
+  .fillup-top-nav {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .fillup-quick-switcher {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-4-col { grid-template-columns: 1fr; }
+  .part-entry-row { grid-template-columns: 1fr; }
+  .losses-13-grid { grid-template-columns: 1fr; }
+  .minimal-machines-grid { grid-template-columns: 1fr; }
+  .oee-calc-ribbon { grid-template-columns: 1fr 1fr; }
+}
