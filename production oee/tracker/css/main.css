@@ -1,6 +1,5 @@
 /* ==========================================================================
    INDUSTRIAL PRODUCTION & OEE TRACKER - CORE DESIGN SYSTEM & NAVIGATION
-   Exact Stylesheet from Previous Production Project
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
@@ -98,7 +97,6 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  cursor: pointer;
 }
 
 .brand-logo {
@@ -220,7 +218,6 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid var(--border-subtle);
 }
 
 .db-status-pill:hover {
