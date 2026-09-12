@@ -1,0 +1,9 @@
+{
+  "name": "Shopfloor Production & OEE Loss Tracker",
+  "short_name": "ProdTracker",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "description": "Industrial Production & OEE Downtime Loss Tracking System with Multi-Part Production and 15-Loss Analysis across 11 CNC, VMC, and HMC machines."
+}
