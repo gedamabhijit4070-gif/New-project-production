@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 92" fill="none">
+  <!-- LEMKEN Corporate Official Logo (Light Background / Original) -->
+  <!-- 1. Circular Plow Emblem -->
+  <g transform="translate(6, 6)">
+    <circle cx="40" cy="40" r="36" stroke="#009fe3" stroke-width="6" fill="none" />
+    <!-- Moldboard -->
+    <path d="M 16 40 C 18 24, 33 16, 52 16 C 68 16, 74 22, 73 31 C 72 39, 56 43, 28 43 Z" 
+          stroke="#009fe3" stroke-width="5" stroke-linejoin="round" fill="none" />
+    <!-- Plow share blade -->
+    <path d="M 0 43 L 55 43 L 55 50 L 22 50 L 0 43 Z" fill="#009fe3" />
+    <!-- Plow share bottom guide line -->
+    <path d="M 23 50 L 43 62" stroke="#009fe3" stroke-width="5" stroke-linecap="round" />
+  </g>
+
+  <!-- 2. "LEMKEN" Bold Wordmark with signature pointed 'M' -->
+  <g fill="#009fe3" transform="translate(104, 14)">
+    <!-- L -->
+    <path d="M 0 5 L 18 5 L 18 51 L 43 51 L 43 65 L 0 65 Z" />
+    <!-- E -->
+    <path d="M 51 5 L 90 5 L 90 19 L 69 19 L 69 28 L 88 28 L 88 41 L 69 41 L 69 51 L 91 51 L 91 65 L 51 65 Z" />
+    <!-- M with signature pointed bottom spear -->
+    <path d="M 99 5 L 118 5 L 131 34 L 144 5 L 163 5 L 163 65 L 147 65 L 147 24 L 135 48 L 127 48 L 115 24 L 115 65 L 99 65 Z" />
+    <polygon points="124,45 138,45 131,80" />
+    <!-- K -->
+    <path d="M 172 5 L 190 5 L 190 28 L 211 5 L 234 5 L 208 33 L 236 65 L 212 65 L 190 39 L 190 65 L 172 65 Z" />
+    <!-- E -->
+    <path d="M 243 5 L 282 5 L 282 19 L 261 19 L 261 28 L 280 28 L 280 41 L 261 41 L 261 51 L 283 51 L 283 65 L 243 65 Z" />
+    <!-- N -->
+    <path d="M 292 5 L 311 5 L 333 42 L 333 5 L 351 5 L 351 65 L 332 65 L 310 28 L 310 65 L 292 65 Z" />
+  </g>
+
+  <!-- 3. "THE AGROVISION COMPANY" Tagline (Official Black) -->
+  <g fill="#111827" transform="translate(468, 14)">
+    <text x="0" y="20" font-family="'Plus Jakarta Sans', 'Arial Black', sans-serif" font-weight="900" font-size="16" letter-spacing="1">THE</text>
+    <text x="0" y="42" font-family="'Plus Jakarta Sans', 'Arial Black', sans-serif" font-weight="900" font-size="16" letter-spacing="1">AGROVISION</text>
+    <text x="0" y="64" font-family="'Plus Jakarta Sans', 'Arial Black', sans-serif" font-weight="900" font-size="16" letter-spacing="1">COMPANY</text>
+  </g>
+</svg>
