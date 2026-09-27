@@ -1,0 +1,471 @@
+/* ==========================================================================
+   ADAPTIVE DEVICE SCALING LAYER  —  WINDOWS DESKTOP + ANDROID MOBILE
+   --------------------------------------------------------------------------
+   Loaded AFTER main.css / dashboard.css / forms.css, so this file is the
+   single source of truth for how the interface scales on each device class:
+
+   1. TEXT SCALING GUARD          – predictable font scale on Android
+   2. WINDOWS DESKTOP SCALE TIERS – laptop baseline, 1600px+, 2000px+ (4K)
+   3. POINTER & SCROLLBAR POLISH  – themed Windows scrollbar, no sticky hover
+   4. FLUID PAGE SCALING          – clamp() hero, cards & headings (phone→desktop)
+   5. DETERMINISTIC GRIDS         – machines grid column count per breakpoint
+   6. NAVBAR TWO-ROW WRAP         – prevents 861–1240px navbar overflow
+   7. ANDROID TOUCH TARGETS       – ≥44px controls, 16px inputs (no auto-zoom)
+   8. ANDROID SAFE-AREA + LAYOUT  – notch insets, gutters, dvh, landscape
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. TEXT SCALING GUARD
+   Stops Android Chrome "text autosizing" from randomly inflating copy so the
+   scale below stays exactly as designed on every device.
+   ========================================================================== */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+
+/* ==========================================================================
+   2. WINDOWS DESKTOP SCALE TIERS
+   Base styles (100%) are tuned for 1025–1599px Windows laptops.
+   Larger screens scale the whole rem-based design system up so the UI stays
+   comfortable instead of looking tiny on big monitors.
+   ========================================================================== */
+
+/* Large desktop monitor (1600px+): +5% type scale, wider content, taller charts */
+@media (min-width: 1600px) {
+  html {
+    font-size: 105%;
+  }
+
+  .navbar {
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+
+  .app-container {
+    max-width: 1560px;
+    padding: 34px 44px 90px;
+  }
+
+  .minimal-machines-grid {
+    max-width: 1560px;
+  }
+
+  .chart-container-wrap {
+    height: 360px;
+  }
+}
+
+/* 4K / ultrawide monitor (2000px+): +10% type scale, maximum content width */
+@media (min-width: 2000px) {
+  html {
+    font-size: 110%;
+  }
+
+  .navbar {
+    padding-left: 56px;
+    padding-right: 56px;
+  }
+
+  .app-container {
+    max-width: 1760px;
+    padding: 38px 56px 100px;
+  }
+
+  .minimal-machines-grid {
+    max-width: 1760px;
+  }
+
+  .chart-container-wrap {
+    height: 400px;
+  }
+}
+
+
+/* ==========================================================================
+   3. POINTER & SCROLLBAR POLISH
+   ========================================================================== */
+
+/* Slim dark scrollbars matching the industrial theme (Chrome/Edge + Firefox) */
+@media (min-width: 1025px) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2b4370 #0a1120;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0a1120;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2b4370;
+    border-radius: 8px;
+    border: 2px solid #0a1120;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--lemken-blue);
+  }
+}
+
+/* Touch devices (Android): keep :hover transforms from sticking after a tap */
+@media (hover: none), (pointer: coarse) {
+  .minimal-machine-card:hover {
+    transform: none;
+    background: #0b1325;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .minimal-machine-card:hover::before {
+    width: 4px;
+  }
+
+  .minimal-machine-card:hover .card-launch-icon {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+    transform: none;
+  }
+
+  .btn-card-analyze:hover,
+  .machine-pill-btn:hover,
+  .period-tab-btn:hover,
+  .btn-open-entered-dash:hover,
+  .btn-check-entered-data:hover,
+  .top-logs-btn:hover,
+  .btn-primary:hover,
+  .btn-success:hover,
+  .btn:hover {
+    transform: none;
+  }
+}
+
+
+/* ==========================================================================
+   4. FLUID PAGE SCALING (clamp: phone → tablet → desktop, no size jumps)
+   Replaces Page-1 hero / machine-card scaling that older files shadowed via
+   stylesheet load order, and makes the main headings follow viewport width.
+   ========================================================================== */
+
+.minimal-machines-hero {
+  margin: clamp(14px, 6px + 1.75vw, 28px) auto clamp(20px, 12px + 2vw, 36px);
+  padding: clamp(16px, 8px + 2vw, 28px) clamp(8px, 4px + 1.5vw, 20px) clamp(20px, 12px + 2vw, 36px);
+}
+
+.lemken-hero-logo {
+  height: clamp(44px, 18px + 3.6vw, 68px);
+  max-width: min(520px, 82vw);
+}
+
+.minimal-machines-hero h2 {
+  font-size: clamp(1.6rem, 1.1rem + 2vw, 2.6rem);
+  margin-bottom: clamp(6px, 4px + 0.6vw, 10px);
+}
+
+.minimal-machines-hero p {
+  font-size: clamp(0.85rem, 0.8rem + 0.35vw, 1.05rem);
+}
+
+.minimal-machine-card {
+  padding: clamp(16px, 9px + 1.4vw, 24px) clamp(14px, 9px + 1.2vw, 22px);
+  min-height: clamp(86px, 70px + 3vw, 110px);
+}
+
+.card-machine-type {
+  font-size: clamp(0.66rem, 0.64rem + 0.1vw, 0.72rem);
+}
+
+.card-machine-name {
+  font-size: clamp(1.3rem, 1.1rem + 0.6vw, 1.5rem);
+}
+
+/* Page-2 active machine title */
+.active-machine-badge-group h2 {
+  font-size: clamp(1.15rem, 0.95rem + 1.2vw, 1.65rem);
+}
+
+/* Page-3 dashboard title */
+.dashboard-title-area h2 {
+  font-size: clamp(1.25rem, 1rem + 1.4vw, 1.85rem);
+}
+
+
+/* ==========================================================================
+   5. DETERMINISTIC MACHINES GRID
+   Column counts used to depend on which stylesheet loaded last.
+   Desktop 4 → laptop 3 → tablet 2 → phone 1
+   ========================================================================== */
+.minimal-machines-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1240px) {
+  .minimal-machines-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 880px) {
+  .minimal-machines-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .minimal-machines-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0;
+    margin-bottom: 32px;
+  }
+}
+
+
+/* ==========================================================================
+   6. NAVBAR TWO-ROW WRAP (≤ 1240px)
+   The single-row navbar (brand + tabs + shift/clock pills) needs ≈1203px;
+   below that it pushed content past the right edge of the screen. Wrap to the
+   same two-row layout the phone breakpoint uses before any overflow occurs.
+   NOTE: no lower bound on purpose — media-query widths can land on a
+   fractional pixel at the 860/861 phone-breakpoint boundary, leaving a sliver
+   where neither (max-width: 860px) nor (min-width: 861px) matches. This rule
+   simply covers everything up to 1240px; it is idempotent with the phone
+   layout below 861px (same order/width declarations).
+   ========================================================================== */
+@media (max-width: 1240px) {
+  .navbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .brand-section {
+    order: 1;
+  }
+
+  .top-nav-controls {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .main-nav-tabs {
+    order: 3;
+    width: 100%;
+  }
+
+  .nav-tab-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
+}
+
+
+/* ==========================================================================
+   7. ANDROID TOUCH TARGETS & INPUT SCALING (≤ 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+  /* 16px inputs: focus must never trigger Android Chrome auto-zoom */
+  input,
+  select,
+  textarea,
+  .form-group input,
+  .form-group select,
+  .form-group textarea,
+  .modal-select,
+  .dashboard-select,
+  .period-interval-select,
+  .dropdown-loss-select,
+  .search-input-wrap input,
+  .loss-number-field {
+    font-size: 16px !important;
+  }
+
+  /* ≥44px touch targets */
+  .btn-card-analyze {
+    min-height: 44px;
+    padding: 9px 15px;
+  }
+
+  .card-launch-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .machine-pill-btn {
+    min-height: 44px;
+    padding: 9px 15px;
+  }
+
+  .period-tab-btn {
+    min-height: 44px;
+  }
+
+  .btn-icon-only {
+    width: 44px;
+    height: 44px;
+    font-size: 0.85rem;
+  }
+
+  .btn-loss-chip {
+    min-height: 44px;
+  }
+
+  .btn-dropdown-chip {
+    min-height: 44px;
+  }
+
+  .back-btn {
+    min-height: 44px;
+  }
+
+  .btn-inspect-machine,
+  .btn-table-delete {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  /* Charts follow the intended compact height on phones/tablets
+     (previous rules targeted a non-existent .chart-container class) */
+  .chart-container-wrap {
+    height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container-wrap {
+    height: 220px;
+  }
+}
+
+
+/* ==========================================================================
+   8. ANDROID SAFE-AREA, GUTTERS & VIEWPORT
+   viewport-fit=cover lets the PWA draw under the notch/status bar; env() keeps
+   content clear of it (resolves to 0px in normal browser mode, so desktop is
+   unaffected).
+   ========================================================================== */
+
+/* Android URL-bar aware page height (browsers without dvh keep 100vh) */
+body {
+  min-height: 100dvh;
+}
+
+/* Tablet / narrow Windows window: base gutters + notch insets.
+   Lower bound omitted deliberately (fractional-width gap at the 860/861
+   boundary); the (max-width: 860px) block below wins for phone widths. */
+@media (max-width: 1024px) {
+  .navbar {
+    padding:
+      calc(12px + env(safe-area-inset-top, 0px))
+      calc(32px + env(safe-area-inset-right, 0px))
+      12px
+      calc(32px + env(safe-area-inset-left, 0px));
+  }
+
+  .app-container {
+    padding:
+      30px
+      calc(32px + env(safe-area-inset-right, 0px))
+      80px
+      calc(32px + env(safe-area-inset-left, 0px));
+  }
+}
+
+/* Phone landscape / small tablets */
+@media (max-width: 860px) {
+  .navbar {
+    padding:
+      calc(10px + env(safe-area-inset-top, 0px))
+      calc(16px + env(safe-area-inset-right, 0px))
+      10px
+      calc(16px + env(safe-area-inset-left, 0px));
+  }
+
+  .app-container {
+    padding:
+      14px
+      calc(12px + env(safe-area-inset-right, 0px))
+      calc(60px + env(safe-area-inset-bottom, 0px))
+      calc(12px + env(safe-area-inset-left, 0px));
+  }
+}
+
+/* Android phones */
+@media (max-width: 600px) {
+  .navbar {
+    padding:
+      calc(8px + env(safe-area-inset-top, 0px))
+      calc(10px + env(safe-area-inset-right, 0px))
+      8px
+      calc(10px + env(safe-area-inset-left, 0px));
+  }
+}
+
+
+/* ==========================================================================
+   9. PHONE REFINEMENTS (≤ 600px)
+   ========================================================================== */
+@media (max-width: 600px) {
+
+  /* Toasts go full-width (a fixed 320px + right offset clips on 360px phones) */
+  #toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .toast {
+    min-width: 0;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 0.84rem;
+  }
+
+  .lemken-hero-brand {
+    margin-bottom: 10px;
+  }
+
+  .minimal-machines-hero p {
+    line-height: 1.4;
+  }
+
+  /* Form page headers stack cleanly instead of overflowing */
+  .panel-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .fillup-title-area {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Compact hero when the phone is held sideways */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .navbar {
+      padding-top: calc(6px + env(safe-area-inset-top, 0px));
+      padding-bottom: 6px;
+    }
+
+    .minimal-machines-hero {
+      margin-top: 6px;
+      margin-bottom: 12px;
+      padding-top: 10px;
+      padding-bottom: 14px;
+    }
+
+    .lemken-hero-logo {
+      height: 34px;
+    }
+  }
+}

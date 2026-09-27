@@ -200,10 +200,13 @@ if (document.readyState === 'loading') {
  * Live Clock and Shift Detection
  */
 function getCurrentShiftInfo() {
-  const hours = new Date().getHours();
-  if (hours >= 6 && hours < 14) return { name: 'Shift A', time: '(06:00 - 14:00)' };
-  if (hours >= 14 && hours < 22) return { name: 'Shift B', time: '(14:00 - 22:00)' };
-  return { name: 'Shift C', time: '(22:00 - 06:00)' };
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  // Shift A 06:00 - 13:30 (the 13:30 - 14:30 inter-shift break stays with Shift A
+  // until Shift B starts, so the badge/default always resolves to a real shift)
+  if (mins >= 6 * 60 && mins < 14 * 60 + 30) return { name: 'Shift A', time: '(06:00 - 13:30)' };
+  if (mins >= 14 * 60 + 30 && mins < 23 * 60) return { name: 'Shift B', time: '(14:30 - 23:00)' };
+  return { name: 'Shift C', time: '(23:00 - 06:00)' };
 }
 
 function getCurrentShift() {
@@ -1808,7 +1811,11 @@ function setDefaultFormValues() {
   const today = new Date().toISOString().split('T')[0];
   if (dom.inputDate) dom.inputDate.value = today;
   if (dom.inputShift) dom.inputShift.value = getCurrentShift();
-  if (dom.inputShiftHours) dom.inputShiftHours.value = '8.5';
+  // Default Shift Hours to the duration of whichever shift is current
+  if (dom.inputShiftHours) {
+    const cur = dom.inputShift ? dom.inputShift.value : '';
+    dom.inputShiftHours.value = cur === 'Shift B' ? '8.5' : (cur === 'Shift C' ? '7.0' : '7.5');
+  }
   if (dom.inputOperator && !dom.inputOperator.value) dom.inputOperator.value = 'Operator 1';
 
   // Part 1 defaults
@@ -2002,6 +2009,11 @@ async function handleFormSubmit(e) {
     const res = await saveProductionEntry(entryRecord);
     const syncMsg = res.supabaseSynced ? ' (Synced to Cloud)' : ' (Saved Locally)';
     showToast(`✓ Shift logged for ${state.currentMachine.name}! OEE: ${entryRecord.oee_rate}% • Productivity: ${entryRecord.productivity_rate} pcs/h${syncMsg}`, 'success');
+
+    // Fire the Telegram supervisor alert immediately — non-blocking, never throws.
+    if (typeof TelegramAlert !== 'undefined' && TelegramAlert.sendShiftAlert) {
+      TelegramAlert.sendShiftAlert(entryRecord);
+    }
 
     setDefaultFormValues();
     updateLiveOeeCalculations();

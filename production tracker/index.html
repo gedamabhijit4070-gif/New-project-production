@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>Shopfloor Production & OEE Loss Tracker | 11 Machines</title>
   <meta name="description"
     content="Industrial Production & OEE Downtime Loss Tracking System with Multi-Part Production and 15-Loss Analysis across 11 CNC, VMC, and HMC machines." />
@@ -14,13 +14,34 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="manifest" href="manifest.json" />
+  <!--
+    PWA manifest: attached only when the app is served over http(s).
+    Opening index.html by double-clicking it (file://) makes the browser fetch
+    manifest.json from a "null" origin, which Chrome/Edge block with a CORS
+    error ("Access to manifest ... has been blocked by CORS policy"), and it
+    then also fails to resolve manifest "start_url" (index.html) in a frame.
+    Skipping the link under file:// keeps the console clean; the app itself
+    still runs. Use start-server.bat (or any local web server) for full PWA
+    install support.
+  -->
+  <script>
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+      var tgManifest = document.createElement('link');
+      tgManifest.rel = 'manifest';
+      tgManifest.href = 'manifest.json';
+      document.head.appendChild(tgManifest);
+    } else {
+      console.warn('[PWA] Running from file:// — manifest skipped. Start the local server (start-server.bat) to install the app and get PWA features.');
+    }
+  </script>
   <link rel="icon" type="image/svg+xml" href="assets/icon-192.svg" />
 
   <!-- Design System CSS -->
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/forms.css" />
+  <!-- Adaptive Device Scaling Layer (must stay last: Windows + Android scaling) -->
+  <link rel="stylesheet" href="css/responsive.css" />
 
   <!-- Supabase Official JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -420,9 +441,9 @@
                 <label for="input-shift">Shift *</label>
                 <select id="input-shift" required>
                   <option value="" disabled selected>-- Select Shift --</option>
-                  <option value="Shift A">Shift A (06:00 - 14:00)</option>
-                  <option value="Shift B">Shift B (14:00 - 22:00)</option>
-                  <option value="Shift C">Shift C (22:00 - 06:00)</option>
+                  <option value="Shift A">Shift A (06:00 - 13:30)</option>
+                  <option value="Shift B">Shift B (14:30 - 23:00)</option>
+                  <option value="Shift C">Shift C (23:00 - 06:00)</option>
                 </select>
               </div>
 
@@ -430,10 +451,11 @@
                 <label for="input-shift-hours">Shift Hours *</label>
                 <select id="input-shift-hours" required>
                   <option value="" disabled selected>-- Select Hours --</option>
+                  <option value="12.0">12.0 Hours (720 Mins)</option>
                   <option value="8.5">8.5 Hours (465 Mins)</option>
                   <option value="8.0">8.0 Hours (480 Mins)</option>
                   <option value="7.5">7.5 Hours (450 Mins)</option>
-                  <option value="7.0">7.0 Hours (420 Mins)</option>
+                  <option value="7.0">7.0 Hours (390 Mins)</option>
                   <option value="6.0">6.0 Hours (360 Mins)</option>
                 </select>
               </div>
@@ -983,6 +1005,11 @@
             <span id="db-status-text">Supabase: Offline</span>
           </button>
 
+          <button class="db-status-pill" id="btn-open-telegram-settings" title="Telegram Alerts — sent to everyone who pressed /start">
+            <span class="status-dot" style="background: var(--emerald-400);"></span>
+            <span>Telegram Alerts</span>
+          </button>
+
           <select id="dash-filter-machine" class="dashboard-select" style="display: none;">
             <option value="ALL">All 11 Machines (Combined Line)</option>
           </select>
@@ -1526,6 +1553,79 @@
   </div>
 
   <!-- ==================================================================== -->
+  <!-- MODAL: TELEGRAM SUPERVISOR ALERTS                                    -->
+  <!-- ==================================================================== -->
+  <div class="modal-overlay hidden" id="modal-telegram">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Telegram Alerts — All Subscribers</h3>
+        <button class="modal-close-btn" id="btn-close-telegram-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 18px;">
+          Every production record saved on this device is pushed to
+          <strong>everyone who has pressed /start</strong> on the bot — instantly, via the official
+          Telegram Bot HTTP API (no server required).
+        </p>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="cfg-tg-token">Bot Token (from @BotFather)</label>
+          <input type="password" id="cfg-tg-token" placeholder="123456789:AA..." autocomplete="off" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>
+            Subscribers who receive alerts
+            <span id="tg-sub-count" style="color: var(--emerald-400); font-weight: 600;">0</span>
+          </label>
+          <div id="tg-subscriber-list"
+            style="max-height: 168px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.25);">
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <input type="text" id="cfg-tg-add-sub" placeholder="Add chat id manually"
+              autocomplete="off" style="flex: 1; min-width: 0;" />
+            <button type="button" class="btn btn-secondary" id="btn-tg-add-sub" style="flex: 0 0 auto;">Add</button>
+          </div>
+          <small style="display: block; margin-top: 6px; font-size: 0.75rem; color: var(--text-muted);">
+            <strong>New user?</strong> Open the bot in Telegram and press <strong>/start</strong> — they are
+            detected automatically (or click <strong>Sync Subscribers</strong>). Each person gets a
+            ✅ confirmation, and can be removed from the list at any time.
+          </small>
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--text-secondary); cursor: pointer; margin-bottom: 6px;">
+          <input type="checkbox" id="cfg-tg-enabled" checked style="width: 16px; height: 16px; accent-color: var(--emerald-400);" />
+          Send alerts when a record is saved
+        </label>
+
+        <div id="tg-bot-hint" style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 4px;"></div>
+
+        <div id="tg-settings-result"
+          style="display: none; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; margin-top: 12px;">
+        </div>
+
+        <div
+          style="margin-top: 16px; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: 0.78rem; color: var(--text-muted); line-height: 1.55;">
+          <strong style="color: var(--amber-400)">Alert format:</strong>
+          <code style="display: block; margin-top: 6px; white-space: pre-wrap; color: var(--text-secondary);">-- DATE -, SHIFT-, MACHINE NAME-, OPERATOR NAME-, PART NUMBER-, CYCLE TIME-, QUANTITY, LOSSES OCCURED IN MINS-</code>
+          <strong style="color: var(--rose-400); display: block; margin-top: 8px;">⚠ Security:</strong>
+          The bot token is stored in this browser and included in the page source. Keep this app on a private/local
+          network, or regenerate the token with @BotFather if it is ever exposed.
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-secondary" id="btn-tg-cancel">Close</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btn-tg-verify">Verify Bot</button>
+          <button type="button" class="btn btn-secondary" id="btn-tg-detect" title="Scan Telegram for anyone who pressed /start">Sync Subscribers</button>
+          <button type="button" class="btn btn-secondary" id="btn-tg-test">Send Test</button>
+          <button type="button" class="btn btn-primary" id="btn-tg-save">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
   <!-- MODAL: ANDROID MOBILE ACCESS & QR CODE                               -->
   <!-- ==================================================================== -->
   <div class="modal-overlay hidden" id="modal-mobile-qr">
@@ -1688,6 +1788,13 @@
             </svg>
             Seed Sample Shifts (Demo)
           </button>
+          <button type="button" class="btn btn-secondary" id="btn-open-telegram-settings-alt" style="color: var(--emerald-400); border-color: rgba(16, 185, 129, 0.4);" title="Telegram Alerts — sent to everyone who pressed /start">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            Telegram Alerts
+          </button>
           <button type="button" class="btn btn-secondary" id="btn-clear-all-records" style="color: var(--rose-400); border-color: rgba(244, 63, 94, 0.35);">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
@@ -1703,6 +1810,10 @@
 
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
+
+  <!-- Telegram Alerts — broadcast to every subscriber (must load before bundle.js) -->
+  <!-- v= cache-buster: bump when telegram.js changes so browsers refetch it -->
+  <script src="js/telegram.js?v=20260926f"></script>
 
   <!-- App Orchestrator Script (Standalone Universal Bundle + Modular Support) -->
   <script src="js/bundle.js"></script>

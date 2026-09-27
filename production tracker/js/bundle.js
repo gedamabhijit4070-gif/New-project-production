@@ -752,8 +752,9 @@ async function seedDemoShiftData() {
       const shiftsToRun = shiftRoll > 0.4 ? ['Shift A', 'Shift B'] : ['Shift A'];
 
       for (const shift of shiftsToRun) {
-        const shiftHours = 8.5;
-        const plannedTimeMins = 465;
+        // Match the real schedule: Shift A = 7.5h, Shift B = 8.5h
+        const shiftHours = shift === 'Shift A' ? 7.5 : 8.5;
+        const plannedTimeMins = shift === 'Shift A' ? 450 : 465;
 
         const partA = { name: `${machine.code}-SHAFT-01`, cycle: 2.2 };
         const partB = { name: `${machine.code}-FLANGE-02`, cycle: 3.5 };
@@ -1173,10 +1174,13 @@ if (document.readyState === 'loading') {
 }
 
 function getCurrentShiftInfo() {
-  const hours = new Date().getHours();
-  if (hours >= 6 && hours < 14) return { name: 'Shift A', time: '(06:00 - 14:00)' };
-  if (hours >= 14 && hours < 22) return { name: 'Shift B', time: '(14:00 - 22:00)' };
-  return { name: 'Shift C', time: '(22:00 - 06:00)' };
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  // Shift A 06:00 - 13:30 (the 13:30 - 14:30 inter-shift break stays with Shift A
+  // until Shift B starts, so the badge/default always resolves to a real shift)
+  if (mins >= 6 * 60 && mins < 14 * 60 + 30) return { name: 'Shift A', time: '(06:00 - 13:30)' };
+  if (mins >= 14 * 60 + 30 && mins < 23 * 60) return { name: 'Shift B', time: '(14:30 - 23:00)' };
+  return { name: 'Shift C', time: '(23:00 - 06:00)' };
 }
 
 function getCurrentShift() {
@@ -2305,13 +2309,16 @@ function setupEventListeners() {
   });
 
   // Automatically select Shift Hours based on Shift:
-  // Shift A & Shift B -> 8.5 Hours
-  // Shift C           -> 7.0 Hours
+  // Shift A (06:00 - 13:30) -> 7.5 Hours
+  // Shift B (14:30 - 23:00) -> 8.5 Hours
+  // Shift C (23:00 - 06:00) -> 7.0 Hours
   if (dom.inputShift) {
     const handleShiftAutoSelect = () => {
       const shift = dom.inputShift.value;
       if (dom.inputShiftHours) {
-        if (shift === 'Shift A' || shift === 'Shift B') {
+        if (shift === 'Shift A') {
+          dom.inputShiftHours.value = '7.5';
+        } else if (shift === 'Shift B') {
           dom.inputShiftHours.value = '8.5';
         } else if (shift === 'Shift C') {
           dom.inputShiftHours.value = '7.0';
@@ -2681,7 +2688,8 @@ async function seedSampleShiftsForDemo() {
         { name: '', cycleTime: 0, qty: 0 }
       ];
 
-      const oeeResult = calculateOEE(8.5, parts, losses, rejectedQty);
+      const seedShiftHours = shift === 'Shift A' ? 7.5 : (shift === 'Shift B' ? 8.5 : 7.0);
+      const oeeResult = calculateOEE(seedShiftHours, parts, losses, rejectedQty);
 
       const dominantLossObj = LOSS_FIELDS.find(f => losses[f.key] > 0) || LOSS_FIELDS[0];
 
@@ -2692,7 +2700,7 @@ async function seedSampleShiftsForDemo() {
         machine_name: machine.name,
         log_date: dateStr,
         shift: shift,
-        shift_hours: 8.5,
+        shift_hours: seedShiftHours,
         operator_name: operator,
         part1_name: p1.name,
         part1_cycle_time: p1.cycle,
@@ -3013,6 +3021,11 @@ async function handleFormSubmit(e) {
 
     // Fire background email alert silently — no UI notification
     sendDowntimeAlertEmail(entryRecord);
+
+    // Fire the Telegram supervisor alert immediately — non-blocking, never throws.
+    if (typeof TelegramAlert !== 'undefined' && TelegramAlert.sendShiftAlert) {
+      TelegramAlert.sendShiftAlert(entryRecord);
+    }
 
     await renderMinimalMachines();
     updateEnteredRecordsBadge();

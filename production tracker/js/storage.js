@@ -1002,8 +1002,9 @@ export async function seedDemoShiftData() {
 
     shuffledMachines.forEach((machine, idx) => {
       const shift = (idx % 3 === 0) ? 'Shift A' : ((idx % 3 === 1) ? 'Shift B' : 'Shift C');
-      const shiftHours = 8.5;
-      const plannedTimeMins = 465;
+      // Match the real schedule: Shift A = 7.5h, Shift B = 8.5h, Shift C = 7h
+      const shiftHours = shift === 'Shift A' ? 7.5 : (shift === 'Shift B' ? 8.5 : 7.0);
+      const plannedTimeMins = shift === 'Shift A' ? 450 : (shift === 'Shift B' ? 465 : 390);
 
       const partA = sampleParts[Math.floor(Math.random() * sampleParts.length)];
       const partB = sampleParts[Math.floor(Math.random() * sampleParts.length)];
