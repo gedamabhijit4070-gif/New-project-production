@@ -496,8 +496,14 @@ function formatMonthLabel(monthKey) {
   }
 }
 
-async function getPeriodicAnalytics({ machineCode = 'ALL', periodType = 'daily', periodValue = 'LATEST' }) {
-  const allEntries = await getProductionEntries();
+async function getPeriodicAnalytics({ machineCode = 'ALL', periodType = 'daily', periodValue = 'LATEST', shiftFilter = 'ALL' }) {
+  const fetchedEntries = await getProductionEntries();
+  // Shift-wise scoping: period discovery, machine matrix, trends and KPIs below
+  // only see the selected shift (Shift A / Shift B / Shift C) when one is chosen,
+  // so the whole dashboard can be read shift by shift for any specific machine.
+  const allEntries = (shiftFilter === 'ALL' || !shiftFilter)
+    ? fetchedEntries
+    : fetchedEntries.filter(e => e.shift === shiftFilter);
   const rawDays = new Set();
   const rawWeeksMap = new Map();
   const rawMonths = new Set();
@@ -524,7 +530,7 @@ async function getPeriodicAnalytics({ machineCode = 'ALL', periodType = 'daily',
       }
       activePeriodLabel = activePeriodValue === 'ALL' ? 'All Recorded Days' : formatDayLabel(activePeriodValue);
     } else {
-      activePeriodValue = new Date().toISOString().split('T')[0];
+      activePeriodValue = toLocalISODate(new Date());
       activePeriodLabel = formatDayLabel(activePeriodValue);
     }
   } else if (periodType === 'weekly') {
@@ -723,6 +729,7 @@ async function getPeriodicAnalytics({ machineCode = 'ALL', periodType = 'daily',
   return {
     selectedMachine,
     periodType,
+    shiftFilter,
     activePeriodValue,
     activePeriodLabel,
     availableDays,
@@ -745,16 +752,16 @@ async function seedDemoShiftData() {
   for (let d = 20; d >= 0; d--) {
     const targetDate = new Date(now);
     targetDate.setDate(targetDate.getDate() - d);
-    const dateStr = targetDate.toISOString().split('T')[0];
+    const dateStr = toLocalISODate(targetDate);
 
     for (const machine of MACHINES) {
       const shiftRoll = Math.random();
-      const shiftsToRun = shiftRoll > 0.4 ? ['Shift A', 'Shift B'] : ['Shift A'];
+      const shiftsToRun = shiftRoll > 0.4 ? ['Shift A', 'Shift B'] : ['Shift A', 'Shift C'];
 
       for (const shift of shiftsToRun) {
-        // Match the real schedule: Shift A = 7.5h, Shift B = 8.5h
-        const shiftHours = shift === 'Shift A' ? 7.5 : 8.5;
-        const plannedTimeMins = shift === 'Shift A' ? 450 : 465;
+        // Match the real schedule: Shift A = 8.5h, Shift B = 8.5h, Shift C = 7.0h
+        const shiftHours = shift === 'Shift C' ? 7.0 : 8.5;
+        const plannedTimeMins = shift === 'Shift C' ? 390 : 465;
 
         const partA = { name: `${machine.code}-SHAFT-01`, cycle: 2.2 };
         const partB = { name: `${machine.code}-FLANGE-02`, cycle: 3.5 };
@@ -825,7 +832,7 @@ async function seedDemoShiftData() {
           log_date: dateStr,
           shift,
           shift_hours: shiftHours,
-          operator_name: `Operator ${shift === 'Shift A' ? '1' : '2'}`,
+          operator_name: `Operator ${shift === 'Shift A' ? '1' : (shift === 'Shift B' ? '2' : '3')}`,
           part1_name: partA.name,
           part1_cycle_time: partA.cycle,
           part1_qty: qtyA,
@@ -849,7 +856,7 @@ async function seedDemoShiftData() {
           quality_rate: qualityRate,
           oee_rate: oeeRate,
           productivity_rate: productivityRate,
-          created_at: new Date(targetDate.getTime() + (shift === 'Shift A' ? 8 : 16) * 3600000).toISOString()
+          created_at: new Date(targetDate.getTime() + (shift === 'Shift A' ? 8 : (shift === 'Shift B' ? 17 : 23)) * 3600000).toISOString()
         });
       }
     }
@@ -949,6 +956,8 @@ function exportPeriodicReportToCSV(periodicData, filename = 'Shopfloor_Periodic_
   lines.push(`"HORIZON TYPE","${periodicData.periodType.toUpperCase()}"`);
   lines.push(`"SELECTED PERIOD","${escapeField(periodicData.activePeriodLabel)}"`);
   lines.push(`"SELECTED TARGET","${escapeField(periodicData.selectedMachine.name)} (${periodicData.selectedMachine.code})"`);
+  const shiftFilter = periodicData.shiftFilter || 'ALL';
+  lines.push(`"SELECTED SHIFT","${escapeField(shiftFilter === 'ALL' ? 'All Shifts (A + B + C)' : shiftFilter)}"`);
   lines.push(`"EXPORT TIMESTAMP","${new Date().toISOString()}"`);
   lines.push('');
 
@@ -1012,6 +1021,7 @@ const state = {
   currentView: 'view-machines',
   currentMachine: MACHINES[0],
   dashFilterMachine: 'ALL',
+  dashFilterShift: 'ALL', // 'ALL' | 'Shift A' | 'Shift B' | 'Shift C'
   dashFilterLoss: 'ALL',
   periodType: 'daily',
   periodValue: 'LATEST',
@@ -1074,6 +1084,8 @@ const dom = {
   liveCalcProductivity: document.getElementById('live-calc-productivity'),
 
   dashFilterMachine: document.getElementById('dash-filter-machine'),
+  shiftFilterPills: document.getElementById('shift-filter-pills'),
+  txtActiveShiftTitle: document.getElementById('txt-active-shift-title'),
   btnSeedSample: document.getElementById('btn-seed-sample'),
   btnExportPeriodCsv: document.getElementById('btn-export-period-csv'),
   selectPeriodInterval: document.getElementById('select-period-interval'),
@@ -1176,15 +1188,47 @@ if (document.readyState === 'loading') {
 function getCurrentShiftInfo() {
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
-  // Shift A 06:00 - 13:30 (the 13:30 - 14:30 inter-shift break stays with Shift A
-  // until Shift B starts, so the badge/default always resolves to a real shift)
-  if (mins >= 6 * 60 && mins < 14 * 60 + 30) return { name: 'Shift A', time: '(06:00 - 13:30)' };
-  if (mins >= 14 * 60 + 30 && mins < 23 * 60) return { name: 'Shift B', time: '(14:30 - 23:00)' };
-  return { name: 'Shift C', time: '(23:00 - 06:00)' };
+  // Shift A 06:00 - 14:30 (the inter-shift break stays with Shift A until Shift B
+  // starts, so the badge/default always resolves to a real shift)
+  if (mins >= 6 * 60 && mins < 14 * 60 + 30) return { name: 'Shift A', time: '(6 AM - 2:30 PM)' };
+  if (mins >= 14 * 60 + 30 && mins < 23 * 60) return { name: 'Shift B', time: '(2:30 PM - 11 PM)' };
+  return { name: 'Shift C', time: '(11 PM - 6 AM)' };
 }
 
 function getCurrentShift() {
   return getCurrentShiftInfo().name;
+}
+
+/**
+ * Local calendar date (YYYY-MM-DD) — never taken from UTC so the production log
+ * date always matches the shopfloor calendar.
+ */
+function toLocalISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Log date belonging to a shift.
+ * Shift A (6 AM - 2:30 PM) and Shift B (2:30 PM - 11 PM) belong to today,
+ * Shift C (11 PM - 6 AM) started the previous evening -> PREVIOUS day's date.
+ */
+function getShiftLogDate(shift) {
+  const d = new Date();
+  if (shift === 'Shift C') d.setDate(d.getDate() - 1);
+  return toLocalISODate(d);
+}
+
+/**
+ * Default shift hours per shift: A = 8.5 hrs, B = 8.5 hrs, C = 7.0 hrs
+ */
+function getDefaultShiftHours(shift) {
+  if (shift === 'Shift A') return '8.5';
+  if (shift === 'Shift B') return '8.5';
+  if (shift === 'Shift C') return '7.0';
+  return '';
 }
 
 function startLiveClock() {
@@ -1356,11 +1400,23 @@ function selectMachine(code) {
   renderAnalyticsDashboard();
 }
 
+/**
+ * Human readable label for the active dashboard shift filter
+ * (All Shifts / Shift A 6 AM - 2:30 PM / Shift B 2:30 PM - 11 PM / Shift C 11 PM - 6 AM)
+ */
+function getDashShiftLabel() {
+  if (state.dashFilterShift === 'ALL' || !state.dashFilterShift) return 'All Shifts';
+  if (state.dashFilterShift === 'Shift A') return 'Shift A (6 AM - 2:30 PM)';
+  if (state.dashFilterShift === 'Shift B') return 'Shift B (2:30 PM - 11 PM)';
+  return 'Shift C (11 PM - 6 AM)';
+}
+
 async function renderAnalyticsDashboard() {
   const data = await getPeriodicAnalytics({
     machineCode: state.dashFilterMachine,
     periodType: state.periodType,
-    periodValue: state.periodValue
+    periodValue: state.periodValue,
+    shiftFilter: state.dashFilterShift
   });
 
   state.lastPeriodicData = data;
@@ -1422,6 +1478,12 @@ async function renderAnalyticsDashboard() {
     if (dom.txtActivePeriod) {
       dom.txtActivePeriod.textContent = data.activePeriodLabel;
     }
+
+    // Keep state aligned with the period actually shown (the analytics engine can
+    // auto-correct when a shift filter leaves the selected period empty)
+    if (data.activePeriodValue) {
+      state.periodValue = data.activePeriodValue;
+    }
   }
 
   if (dom.machineRosterPills) {
@@ -1434,15 +1496,32 @@ async function renderAnalyticsDashboard() {
     });
   }
 
+  // Sync Shift-Wise Analysis pills (All / A / B / C)
+  if (dom.shiftFilterPills) {
+    dom.shiftFilterPills.querySelectorAll('.shift-pill-btn').forEach(btn => {
+      if (btn.dataset.shift === state.dashFilterShift) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  const shiftFilterLabel = getDashShiftLabel();
+
+  if (dom.txtActiveShiftTitle) {
+    dom.txtActiveShiftTitle.textContent = `Shift Filter: ${shiftFilterLabel}`;
+  }
+
   if (dom.txtActiveTargetTitle) {
-    dom.txtActiveTargetTitle.textContent = `Currently Inspecting: ${data.selectedMachine.name} • ${data.activePeriodLabel}`;
+    dom.txtActiveTargetTitle.textContent = `Currently Inspecting: ${data.selectedMachine.name} • ${data.activePeriodLabel} • ${shiftFilterLabel}`;
   }
 
   if (dom.targetKickerName) {
-    dom.targetKickerName.textContent = `${data.selectedMachine.name} • ${data.periodType.toUpperCase()} ANALYSIS`;
+    dom.targetKickerName.textContent = `${data.selectedMachine.name} • ${data.periodType.toUpperCase()} ANALYSIS${state.dashFilterShift === 'ALL' ? '' : ` • ${state.dashFilterShift.toUpperCase()}`}`;
   }
   if (dom.targetMainTitle) {
-    dom.targetMainTitle.textContent = `${data.selectedMachine.name} (${data.activePeriodLabel})`;
+    dom.targetMainTitle.textContent = `${data.selectedMachine.name} (${data.activePeriodLabel}${state.dashFilterShift === 'ALL' ? '' : ` • ${state.dashFilterShift}`})`;
   }
   if (dom.targetOeeSub) {
     dom.targetOeeSub.textContent = `${data.selectedMachine.name} OEE Score`;
@@ -1561,9 +1640,9 @@ async function renderAnalyticsDashboard() {
   syncLossFilterDropdown();
   renderLossesParetoChart(data.summary.lossBreakdown, data.summary.lossCounts);
   renderLossClassificationDonut(data.summary.lossBreakdown);
-  renderLossesBreakdownTable(data.detailedLossList, data.selectedMachine.name);
+  renderLossesBreakdownTable(data.detailedLossList, `${data.selectedMachine.name} • ${shiftFilterLabel}`);
 
-  renderPeriodHistoryTable(data.periodicHistory, data.selectedMachine.name, data.periodType);
+  renderPeriodHistoryTable(data.periodicHistory, `${data.selectedMachine.name} • ${shiftFilterLabel}`, data.periodType);
   renderRootCauseTable(data.lossIncidents);
 }
 
@@ -1642,7 +1721,7 @@ function renderTrendOeeChart(trendPeriods, periodType) {
 
   const targetName = state.dashFilterMachine === 'ALL' ? 'Combined Line (All Machines)' : (MACHINES.find(m => m.code === state.dashFilterMachine)?.name || state.dashFilterMachine);
   if (dom.titleTrendOee) {
-    dom.titleTrendOee.textContent = `${targetName}: OEE Progression Over Time`;
+    dom.titleTrendOee.textContent = `${targetName}: OEE Progression Over Time • ${getDashShiftLabel()}`;
   }
   if (dom.badgeTrendPeriodType) {
     dom.badgeTrendPeriodType.textContent = periodType.toUpperCase();
@@ -1741,7 +1820,7 @@ function renderTrendLossesChart(trendPeriods, periodType) {
 
   const targetName = state.dashFilterMachine === 'ALL' ? 'Combined Line (All Machines)' : (MACHINES.find(m => m.code === state.dashFilterMachine)?.name || state.dashFilterMachine);
   if (dom.titleTrendLosses) {
-    dom.titleTrendLosses.textContent = `${targetName}: Downtime Losses Evolution (${periodType.toUpperCase()})`;
+    dom.titleTrendLosses.textContent = `${targetName}: Downtime Losses Evolution (${periodType.toUpperCase()}) • ${getDashShiftLabel()}`;
   }
 
   const labels = trendPeriods.map(p => p.label);
@@ -2258,10 +2337,23 @@ function setupEventListeners() {
     });
   }
 
+  // Shift-Wise Analysis pills (All Shifts / Shift A / Shift B / Shift C)
+  if (dom.shiftFilterPills) {
+    dom.shiftFilterPills.addEventListener('click', (e) => {
+      const btn = e.target.closest('.shift-pill-btn');
+      if (!btn) return;
+      const shift = btn.dataset.shift || 'ALL';
+      if (shift === state.dashFilterShift) return;
+      state.dashFilterShift = shift;
+      renderAnalyticsDashboard();
+    });
+  }
+
   if (dom.btnExportPeriodCsv) {
     dom.btnExportPeriodCsv.addEventListener('click', () => {
       if (state.lastPeriodicData) {
-        exportPeriodicReportToCSV(state.lastPeriodicData, `${state.dashFilterMachine}_Periodic_Analysis`);
+        const shiftTag = (state.dashFilterShift === 'ALL' || !state.dashFilterShift) ? 'AllShifts' : state.dashFilterShift.replace(/\s+/g, '');
+        exportPeriodicReportToCSV(state.lastPeriodicData, `${state.dashFilterMachine}_${shiftTag}_Periodic_Analysis`);
       } else {
         showToast('No periodic report available to export.', 'error');
       }
@@ -2308,21 +2400,19 @@ function setupEventListeners() {
     }
   });
 
-  // Automatically select Shift Hours based on Shift:
-  // Shift A (06:00 - 13:30) -> 7.5 Hours
-  // Shift B (14:30 - 23:00) -> 8.5 Hours
-  // Shift C (23:00 - 06:00) -> 7.0 Hours
+  // Automatically select Shift Hours and Log Date based on the selected Shift:
+  //   Shift A (6 AM - 2:30 PM)  -> 8.5 Hours, logged on today's date
+  //   Shift B (2:30 PM - 11 PM) -> 8.5 Hours, logged on today's date
+  //   Shift C (11 PM - 6 AM)    -> 7.0 Hours, logged on the PREVIOUS day's date
   if (dom.inputShift) {
     const handleShiftAutoSelect = () => {
       const shift = dom.inputShift.value;
-      if (dom.inputShiftHours) {
-        if (shift === 'Shift A') {
-          dom.inputShiftHours.value = '7.5';
-        } else if (shift === 'Shift B') {
-          dom.inputShiftHours.value = '8.5';
-        } else if (shift === 'Shift C') {
-          dom.inputShiftHours.value = '7.0';
-        }
+      if (dom.inputShiftHours && shift) {
+        const defaultHours = getDefaultShiftHours(shift);
+        if (defaultHours) dom.inputShiftHours.value = defaultHours;
+      }
+      if (dom.inputDate && shift) {
+        dom.inputDate.value = getShiftLogDate(shift);
       }
       updateLiveOeeCalculations();
     };
@@ -2663,7 +2753,7 @@ async function seedSampleShiftsForDemo() {
     daysToLog.forEach((daysAgo, sIdx) => {
       const logDt = new Date(today);
       logDt.setDate(today.getDate() - daysAgo);
-      const dateStr = logDt.toISOString().split('T')[0];
+      const dateStr = toLocalISODate(logDt);
       const shift = shifts[sIdx % shifts.length];
       const operator = sampleOperators[(i + sIdx) % sampleOperators.length];
 
@@ -2688,7 +2778,7 @@ async function seedSampleShiftsForDemo() {
         { name: '', cycleTime: 0, qty: 0 }
       ];
 
-      const seedShiftHours = shift === 'Shift A' ? 7.5 : (shift === 'Shift B' ? 8.5 : 7.0);
+      const seedShiftHours = shift === 'Shift C' ? 7.0 : 8.5;
       const oeeResult = calculateOEE(seedShiftHours, parts, losses, rejectedQty);
 
       const dominantLossObj = LOSS_FIELDS.find(f => losses[f.key] > 0) || LOSS_FIELDS[0];
@@ -2757,9 +2847,9 @@ function openMachineFillup(machineCode) {
 }
 
 function setDefaultFormValues() {
-  // Set today's date automatically (the only sensible default)
-  const today = new Date().toISOString().split('T')[0];
-  if (dom.inputDate) dom.inputDate.value = today;
+  // Pre-fill today's date — or the PREVIOUS day when the shop is currently
+  // running Shift C (11 PM - 6 AM), which started the previous evening.
+  if (dom.inputDate) dom.inputDate.value = getShiftLogDate(getCurrentShift());
 
   // Clear all selects / inputs — no pre-filled dummy data
   if (dom.inputShift) dom.inputShift.value = '';
@@ -2938,8 +3028,9 @@ async function handleFormSubmit(e) {
 
   const shiftHours = parseFloat(dom.inputShiftHours ? dom.inputShiftHours.value : 8.5) || 8.5;
   const operatorName = dom.inputOperator ? dom.inputOperator.value.trim() || 'Operator' : 'Operator';
-  const logDate = (dom.inputDate && dom.inputDate.value) ? dom.inputDate.value : new Date().toISOString().split('T')[0];
   const shift = (dom.inputShift && dom.inputShift.value) ? dom.inputShift.value : 'Shift A';
+  // Shift C (11 PM - 6 AM) belongs to the previous calendar day
+  const logDate = (dom.inputDate && dom.inputDate.value) ? dom.inputDate.value : getShiftLogDate(shift);
 
   const parts = [
     {
@@ -3025,6 +3116,11 @@ async function handleFormSubmit(e) {
     // Fire the Telegram supervisor alert immediately — non-blocking, never throws.
     if (typeof TelegramAlert !== 'undefined' && TelegramAlert.sendShiftAlert) {
       TelegramAlert.sendShiftAlert(entryRecord);
+    }
+
+    // Same for WhatsApp — sends to everyone who has sent "hi" to the bot.
+    if (typeof WhatsappAlert !== 'undefined' && WhatsappAlert.sendShiftAlert) {
+      WhatsappAlert.sendShiftAlert(entryRecord);
     }
 
     await renderMinimalMachines();

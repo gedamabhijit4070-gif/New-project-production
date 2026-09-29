@@ -133,6 +133,8 @@ export function exportPeriodicReportToCSV(periodicData, filenamePrefix = 'Period
   lines.push(`"HORIZON TYPE","${periodicData.periodType.toUpperCase()}"`);
   lines.push(`"SELECTED PERIOD","${escapeField(periodicData.activePeriodLabel)}"`);
   lines.push(`"SELECTED TARGET","${escapeField(periodicData.selectedMachine.name)} (${periodicData.selectedMachine.code})"`);
+  const shiftFilter = periodicData.shiftFilter || 'ALL';
+  lines.push(`"SELECTED SHIFT","${escapeField(shiftFilter === 'ALL' ? 'All Shifts (A + B + C)' : shiftFilter)}"`);
   lines.push(`"EXPORT TIMESTAMP","${new Date().toISOString()}"`);
   lines.push('');
 

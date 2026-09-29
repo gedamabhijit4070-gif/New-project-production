@@ -27,6 +27,7 @@ const state = {
   currentView: 'view-machines',
   currentMachine: MACHINES[0],
   dashFilterMachine: 'ALL',
+  dashFilterShift: 'ALL', // 'ALL' | 'Shift A' | 'Shift B' | 'Shift C'
   dashFilterLoss: 'ALL', // 'ALL' or specific loss key
   periodType: 'daily', // 'daily', 'weekly', 'monthly', 'overall'
   periodValue: 'LATEST', // 'LATEST' or specific period key
@@ -96,6 +97,8 @@ const dom = {
 
   // Page 3: Periodic Analytics Dashboard Elements
   dashFilterMachine: document.getElementById('dash-filter-machine'),
+  shiftFilterPills: document.getElementById('shift-filter-pills'),
+  txtActiveShiftTitle: document.getElementById('txt-active-shift-title'),
   btnSeedSample: document.getElementById('btn-seed-sample'),
   btnExportPeriodCsv: document.getElementById('btn-export-period-csv'),
   selectPeriodInterval: document.getElementById('select-period-interval'),
@@ -202,15 +205,47 @@ if (document.readyState === 'loading') {
 function getCurrentShiftInfo() {
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
-  // Shift A 06:00 - 13:30 (the 13:30 - 14:30 inter-shift break stays with Shift A
-  // until Shift B starts, so the badge/default always resolves to a real shift)
-  if (mins >= 6 * 60 && mins < 14 * 60 + 30) return { name: 'Shift A', time: '(06:00 - 13:30)' };
-  if (mins >= 14 * 60 + 30 && mins < 23 * 60) return { name: 'Shift B', time: '(14:30 - 23:00)' };
-  return { name: 'Shift C', time: '(23:00 - 06:00)' };
+  // Shift A 06:00 - 14:30 (the inter-shift break stays with Shift A until Shift B
+  // starts, so the badge/default always resolves to a real shift)
+  if (mins >= 6 * 60 && mins < 14 * 60 + 30) return { name: 'Shift A', time: '(6 AM - 2:30 PM)' };
+  if (mins >= 14 * 60 + 30 && mins < 23 * 60) return { name: 'Shift B', time: '(2:30 PM - 11 PM)' };
+  return { name: 'Shift C', time: '(11 PM - 6 AM)' };
 }
 
 function getCurrentShift() {
   return getCurrentShiftInfo().name;
+}
+
+/**
+ * Local calendar date (YYYY-MM-DD) — never taken from UTC so the production log
+ * date always matches the shopfloor calendar.
+ */
+function toLocalISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Log date belonging to a shift.
+ * Shift A (6 AM - 2:30 PM) and Shift B (2:30 PM - 11 PM) belong to today,
+ * Shift C (11 PM - 6 AM) started the previous evening -> PREVIOUS day's date.
+ */
+function getShiftLogDate(shift) {
+  const d = new Date();
+  if (shift === 'Shift C') d.setDate(d.getDate() - 1);
+  return toLocalISODate(d);
+}
+
+/**
+ * Default shift hours per shift: A = 8.5 hrs, B = 8.5 hrs, C = 7.0 hrs
+ */
+function getDefaultShiftHours(shift) {
+  if (shift === 'Shift A') return '8.5';
+  if (shift === 'Shift B') return '8.5';
+  if (shift === 'Shift C') return '7.0';
+  return '';
 }
 
 function startLiveClock() {
@@ -398,13 +433,25 @@ function selectMachine(code) {
 }
 
 /**
+ * Human readable label for the active dashboard shift filter
+ * (All Shifts / Shift A 6 AM - 2:30 PM / Shift B 2:30 PM - 11 PM / Shift C 11 PM - 6 AM)
+ */
+function getDashShiftLabel() {
+  if (state.dashFilterShift === 'ALL' || !state.dashFilterShift) return 'All Shifts';
+  if (state.dashFilterShift === 'Shift A') return 'Shift A (6 AM - 2:30 PM)';
+  if (state.dashFilterShift === 'Shift B') return 'Shift B (2:30 PM - 11 PM)';
+  return 'Shift C (11 PM - 6 AM)';
+}
+
+/**
  * PAGE 3: Render Comprehensive Periodic OEE & 13-Loss Analytics Dashboard
  */
 async function renderAnalyticsDashboard() {
   const data = await getPeriodicAnalytics({
     machineCode: state.dashFilterMachine,
     periodType: state.periodType,
-    periodValue: state.periodValue
+    periodValue: state.periodValue,
+    shiftFilter: state.dashFilterShift
   });
 
   state.lastPeriodicData = data;
@@ -468,6 +515,12 @@ async function renderAnalyticsDashboard() {
     if (dom.txtActivePeriod) {
       dom.txtActivePeriod.textContent = data.activePeriodLabel;
     }
+
+    // Keep state aligned with the period actually shown (the analytics engine can
+    // auto-correct when a shift filter leaves the selected period empty)
+    if (data.activePeriodValue) {
+      state.periodValue = data.activePeriodValue;
+    }
   }
 
   // 3. Sync Machine Roster Quick-Pills
@@ -481,16 +534,33 @@ async function renderAnalyticsDashboard() {
     });
   }
 
+  // 3b. Sync Shift-Wise Analysis pills (All / A / B / C)
+  if (dom.shiftFilterPills) {
+    dom.shiftFilterPills.querySelectorAll('.shift-pill-btn').forEach(btn => {
+      if (btn.dataset.shift === state.dashFilterShift) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  const shiftFilterLabel = getDashShiftLabel();
+
+  if (dom.txtActiveShiftTitle) {
+    dom.txtActiveShiftTitle.textContent = `Shift Filter: ${shiftFilterLabel}`;
+  }
+
   if (dom.txtActiveTargetTitle) {
-    dom.txtActiveTargetTitle.textContent = `Currently Inspecting: ${data.selectedMachine.name} • ${data.activePeriodLabel}`;
+    dom.txtActiveTargetTitle.textContent = `Currently Inspecting: ${data.selectedMachine.name} • ${data.activePeriodLabel} • ${shiftFilterLabel}`;
   }
 
   // 4. Update Cockpit Titles and Metrics
   if (dom.targetKickerName) {
-    dom.targetKickerName.textContent = `${data.selectedMachine.name} • ${data.periodType.toUpperCase()} ANALYSIS`;
+    dom.targetKickerName.textContent = `${data.selectedMachine.name} • ${data.periodType.toUpperCase()} ANALYSIS${state.dashFilterShift === 'ALL' ? '' : ` • ${state.dashFilterShift.toUpperCase()}`}`;
   }
   if (dom.targetMainTitle) {
-    dom.targetMainTitle.textContent = `${data.selectedMachine.name} (${data.activePeriodLabel})`;
+    dom.targetMainTitle.textContent = `${data.selectedMachine.name} (${data.activePeriodLabel}${state.dashFilterShift === 'ALL' ? '' : ` • ${state.dashFilterShift}`})`;
   }
   if (dom.targetOeeSub) {
     dom.targetOeeSub.textContent = `${data.selectedMachine.name} OEE Score`;
@@ -616,10 +686,10 @@ async function renderAnalyticsDashboard() {
   syncLossFilterDropdown();
   renderLossesParetoChart(data.summary.lossBreakdown, data.summary.lossCounts);
   renderLossClassificationDonut(data.summary.lossBreakdown);
-  renderLossesBreakdownTable(data.detailedLossList, data.selectedMachine.name);
+  renderLossesBreakdownTable(data.detailedLossList, `${data.selectedMachine.name} • ${shiftFilterLabel}`);
 
   // 8. Render Machine Chronological History Table
-  renderPeriodHistoryTable(data.periodicHistory, data.selectedMachine.name, data.periodType);
+  renderPeriodHistoryTable(data.periodicHistory, `${data.selectedMachine.name} • ${shiftFilterLabel}`, data.periodType);
 
   // 9. Render "Why & How Loss Occurs" Root-Cause Log Table
   renderRootCauseTable(data.lossIncidents);
@@ -709,7 +779,7 @@ function renderTrendOeeChart(trendPeriods, periodType) {
 
   if (dom.titleTrendOee) {
     const targetName = state.dashFilterMachine === 'ALL' ? 'All Machines Combined' : state.dashFilterMachine;
-    dom.titleTrendOee.textContent = `${targetName}: OEE & APQ Progression (${periodType.toUpperCase()})`;
+    dom.titleTrendOee.textContent = `${targetName}: OEE & APQ Progression (${periodType.toUpperCase()}) • ${getDashShiftLabel()}`;
   }
   if (dom.badgeTrendPeriodType) {
     dom.badgeTrendPeriodType.textContent = `${periodType.toUpperCase()} TREND`;
@@ -855,7 +925,7 @@ function renderTrendLossesChart(trendPeriods, periodType) {
 
   if (dom.titleTrendLosses) {
     const targetName = state.dashFilterMachine === 'ALL' ? 'All Machines' : state.dashFilterMachine;
-    dom.titleTrendLosses.textContent = `${targetName}: Downtime Losses Evolution (${periodType.toUpperCase()})`;
+    dom.titleTrendLosses.textContent = `${targetName}: Downtime Losses Evolution (${periodType.toUpperCase()}) • ${getDashShiftLabel()}`;
   }
 
   if (state.chartTrendLosses) {
@@ -1417,6 +1487,38 @@ function setupEventListeners() {
     });
   }
 
+  // Automatically select Shift Hours and Log Date based on the selected Shift:
+  //   Shift A (6 AM - 2:30 PM)  -> 8.5 Hours, logged on today's date
+  //   Shift B (2:30 PM - 11 PM) -> 8.5 Hours, logged on today's date
+  //   Shift C (11 PM - 6 AM)    -> 7.0 Hours, logged on the PREVIOUS day's date
+  if (dom.inputShift) {
+    const handleShiftAutoSelect = () => {
+      const shift = dom.inputShift.value;
+      if (dom.inputShiftHours && shift) {
+        const defaultHours = getDefaultShiftHours(shift);
+        if (defaultHours) dom.inputShiftHours.value = defaultHours;
+      }
+      if (dom.inputDate && shift) {
+        dom.inputDate.value = getShiftLogDate(shift);
+      }
+      updateLiveOeeCalculations();
+    };
+    dom.inputShift.addEventListener('change', handleShiftAutoSelect);
+    dom.inputShift.addEventListener('input', handleShiftAutoSelect);
+  }
+
+  // Page 3 Shift-Wise Analysis pills (All Shifts / Shift A / Shift B / Shift C)
+  if (dom.shiftFilterPills) {
+    dom.shiftFilterPills.addEventListener('click', (e) => {
+      const btn = e.target.closest('.shift-pill-btn');
+      if (!btn) return;
+      const shift = btn.dataset.shift || 'ALL';
+      if (shift === state.dashFilterShift) return;
+      state.dashFilterShift = shift;
+      renderAnalyticsDashboard();
+    });
+  }
+
   // Periodic Horizon Buttons (Daily, Weekly, Monthly, Overall)
   if (dom.periodTabsGroup) {
     dom.periodTabsGroup.addEventListener('click', (e) => {
@@ -1475,7 +1577,8 @@ function setupEventListeners() {
   if (dom.btnExportPeriodCsv) {
     dom.btnExportPeriodCsv.addEventListener('click', () => {
       if (state.lastPeriodicData) {
-        exportPeriodicReportToCSV(state.lastPeriodicData, `${state.dashFilterMachine}_Periodic_Analysis`);
+        const shiftTag = (state.dashFilterShift === 'ALL' || !state.dashFilterShift) ? 'AllShifts' : state.dashFilterShift.replace(/\s+/g, '');
+        exportPeriodicReportToCSV(state.lastPeriodicData, `${state.dashFilterMachine}_${shiftTag}_Periodic_Analysis`);
       } else {
         showToast('No periodic report available to export.', 'error');
       }
@@ -1808,13 +1911,14 @@ function openMachineFillup(machineCode) {
  * Set default values for Page 2 production form
  */
 function setDefaultFormValues() {
-  const today = new Date().toISOString().split('T')[0];
-  if (dom.inputDate) dom.inputDate.value = today;
+  // Pre-fill today's date — or the PREVIOUS day when the shop is currently
+  // running Shift C (11 PM - 6 AM), which started the previous evening.
+  if (dom.inputDate) dom.inputDate.value = getShiftLogDate(getCurrentShift());
   if (dom.inputShift) dom.inputShift.value = getCurrentShift();
-  // Default Shift Hours to the duration of whichever shift is current
+  // Default Shift Hours: Shift A = 8.5 hrs, Shift B = 8.5 hrs, Shift C = 7.0 hrs
   if (dom.inputShiftHours) {
     const cur = dom.inputShift ? dom.inputShift.value : '';
-    dom.inputShiftHours.value = cur === 'Shift B' ? '8.5' : (cur === 'Shift C' ? '7.0' : '7.5');
+    dom.inputShiftHours.value = getDefaultShiftHours(cur) || '8.5';
   }
   if (dom.inputOperator && !dom.inputOperator.value) dom.inputOperator.value = 'Operator 1';
 
@@ -1922,8 +2026,9 @@ async function handleFormSubmit(e) {
 
   const shiftHours = parseFloat(dom.inputShiftHours.value) || 8.5;
   const operatorName = dom.inputOperator.value.trim() || 'Operator';
-  const logDate = dom.inputDate.value || new Date().toISOString().split('T')[0];
   const shift = dom.inputShift.value || 'Shift A';
+  // Shift C (11 PM - 6 AM) belongs to the previous calendar day
+  const logDate = dom.inputDate.value || getShiftLogDate(shift);
 
   const parts = [
     {
@@ -2013,6 +2118,11 @@ async function handleFormSubmit(e) {
     // Fire the Telegram supervisor alert immediately — non-blocking, never throws.
     if (typeof TelegramAlert !== 'undefined' && TelegramAlert.sendShiftAlert) {
       TelegramAlert.sendShiftAlert(entryRecord);
+    }
+
+    // Same for WhatsApp — sends to everyone who has sent "hi" to the bot.
+    if (typeof WhatsappAlert !== 'undefined' && WhatsappAlert.sendShiftAlert) {
+      WhatsappAlert.sendShiftAlert(entryRecord);
     }
 
     setDefaultFormValues();

@@ -943,6 +943,13 @@
   padding-top: 18px;
 }
 
+/* Row 3: Shift-Wise Analysis Quick-Pills */
+.console-row-shifts {
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
 .console-machines-header {
   display: flex;
   align-items: center;
@@ -1039,6 +1046,76 @@
   color: #ffffff;
   border-color: var(--amber-400);
   box-shadow: 0 0 14px var(--amber-glow);
+}
+
+/* Row 3: Shift-Wise Analysis Pills (All Shifts / Shift A / Shift B / Shift C) */
+.shift-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.shift-pill-btn {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.shift-pill-btn:hover {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+  transform: translateY(-1px);
+}
+
+.shift-pill-btn.pill-shift-all.active {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 14px rgba(2, 132, 199, 0.4);
+}
+
+.shift-pill-btn.pill-shift-a.active {
+  background: linear-gradient(135deg, var(--cyan-500), #0891b2);
+  color: #ffffff;
+  border-color: var(--cyan-400);
+  box-shadow: 0 0 14px var(--cyan-glow);
+}
+
+.shift-pill-btn.pill-shift-b.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #ffffff;
+  border-color: #818cf8;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.45);
+}
+
+.shift-pill-btn.pill-shift-c.active {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #ffffff;
+  border-color: var(--amber-400);
+  box-shadow: 0 0 14px var(--amber-glow);
+}
+
+.active-shift-inspecting {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--amber-400);
+  background: rgba(245, 158, 11, 0.1);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  white-space: nowrap;
 }
 
 /* Machine Comparison Matrix Section & Table */

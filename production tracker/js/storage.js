@@ -22,6 +22,17 @@ function generateUUID() {
   return '10000000-1000-4000-8000-' + Math.random().toString(16).substring(2, 14);
 }
 
+/**
+ * Local calendar date (YYYY-MM-DD) — avoids the UTC off-by-one of toISOString()
+ * so logged and seeded shift dates always match the shopfloor calendar.
+ */
+function toLocalISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 async function waitForSupabaseLib(maxWaitMs = 2500) {
   const start = Date.now();
   while (!window.supabase && (Date.now() - start) < maxWaitMs) {
@@ -716,8 +727,14 @@ export function calculateTimeWeightedOEE(entries) {
  * Supports: Each Day (daily), Weekly (ISO weeks), Monthly, and Overall Horizons
  * Across All 11 Machines together and Each Machine separately.
  */
-export async function getPeriodicAnalytics({ machineCode = 'ALL', periodType = 'daily', periodValue = 'LATEST' } = {}) {
-  const allEntries = await getProductionEntries();
+export async function getPeriodicAnalytics({ machineCode = 'ALL', periodType = 'daily', periodValue = 'LATEST', shiftFilter = 'ALL' } = {}) {
+  const fetchedEntries = await getProductionEntries();
+  // Shift-wise scoping: period discovery, machine matrix, trends and KPIs below
+  // only see the selected shift (Shift A / Shift B / Shift C) when one is chosen,
+  // so the whole dashboard can be read shift by shift for any specific machine.
+  const allEntries = (shiftFilter === 'ALL' || !shiftFilter)
+    ? fetchedEntries
+    : fetchedEntries.filter(e => e.shift === shiftFilter);
 
   // 1. Discover all unique Days, ISO Weeks, and Months
   const daysMap = new Map();
@@ -956,6 +973,7 @@ export async function getPeriodicAnalytics({ machineCode = 'ALL', periodType = '
 
   return {
     periodType,
+    shiftFilter,
     activePeriodValue,
     activePeriodLabel,
     availableDays,
@@ -994,7 +1012,7 @@ export async function seedDemoShiftData() {
   for (let d = 0; d < 21; d++) {
     const curDate = new Date(baseDate);
     curDate.setDate(baseDate.getDate() + d);
-    const dateStr = curDate.toISOString().split('T')[0];
+    const dateStr = toLocalISODate(curDate);
 
     // Pick 4 to 6 random machines each day
     const activeMachinesCount = 5;
@@ -1002,9 +1020,9 @@ export async function seedDemoShiftData() {
 
     shuffledMachines.forEach((machine, idx) => {
       const shift = (idx % 3 === 0) ? 'Shift A' : ((idx % 3 === 1) ? 'Shift B' : 'Shift C');
-      // Match the real schedule: Shift A = 7.5h, Shift B = 8.5h, Shift C = 7h
-      const shiftHours = shift === 'Shift A' ? 7.5 : (shift === 'Shift B' ? 8.5 : 7.0);
-      const plannedTimeMins = shift === 'Shift A' ? 450 : (shift === 'Shift B' ? 465 : 390);
+      // Match the real schedule: Shift A = 8.5h, Shift B = 8.5h, Shift C = 7.0h
+      const shiftHours = shift === 'Shift C' ? 7.0 : 8.5;
+      const plannedTimeMins = shift === 'Shift C' ? 390 : 465;
 
       const partA = sampleParts[Math.floor(Math.random() * sampleParts.length)];
       const partB = sampleParts[Math.floor(Math.random() * sampleParts.length)];

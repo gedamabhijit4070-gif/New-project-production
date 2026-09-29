@@ -67,9 +67,9 @@
 
   // Shift clock windows (kept in sync with getCurrentShiftInfo in bundle.js)
   var SHIFT_TIMES = {
-    'Shift A': '06:00 - 13:30',
-    'Shift B': '14:30 - 23:00',
-    'Shift C': '23:00 - 06:00'
+    'Shift A': '6 AM - 2:30 PM',
+    'Shift B': '2:30 PM - 11 PM',
+    'Shift C': '11 PM - 6 AM'
   };
 
   // Local copy of the 15 loss labels so this file stays self-contained.

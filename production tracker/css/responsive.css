@@ -137,6 +137,7 @@ html {
 
   .btn-card-analyze:hover,
   .machine-pill-btn:hover,
+  .shift-pill-btn:hover,
   .period-tab-btn:hover,
   .btn-open-entered-dash:hover,
   .btn-check-entered-data:hover,
@@ -300,7 +301,8 @@ html {
     height: 44px;
   }
 
-  .machine-pill-btn {
+  .machine-pill-btn,
+  .shift-pill-btn {
     min-height: 44px;
     padding: 9px 15px;
   }
