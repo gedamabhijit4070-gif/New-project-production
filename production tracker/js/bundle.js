@@ -319,7 +319,13 @@ async function clearAllProductionEntries() {
 }
 
 function calculateOEE(shiftHours, parts, lossesObj, rejectedQty) {
-  const plannedTimeMins = Number(shiftHours) === 8.5 ? 465 : (Number(shiftHours) === 7.0 ? 390 : Math.round((Number(shiftHours) || 8.5) * 60));
+  // Planned Production Time = shift length minus planned breaks.
+  // 8.5h -> 465 (510-45), 7.0h -> 390 (420-30); other lengths deduct the same
+  // break policy (45m for >=8h shifts, 30m below) instead of zero breaks.
+  const hrs = Number(shiftHours) || 8.5;
+  const plannedTimeMins = hrs === 8.5
+    ? 465
+    : (hrs === 7.0 ? 390 : Math.max(0, Math.round(hrs * 60 - (hrs >= 8 ? 45 : 30))));
 
   let totalLossesMins = 0;
   LOSS_FIELDS.forEach(f => {
@@ -408,8 +414,12 @@ function calculateTimeWeightedOEE(entries) {
   });
 
   entries.forEach(e => {
-    plannedTimeMins += Number(e.planned_time_mins) || 465;
-    operatingTimeMins += Number(e.operating_time_mins) || 465;
+    // Real zeros must survive (a 0-min operating shift is valid full downtime).
+    // Number.isFinite guards missing/corrupt fields without inventing minutes.
+    const p = Number(e.planned_time_mins);
+    const o = Number(e.operating_time_mins);
+    plannedTimeMins += Number.isFinite(p) ? p : 0;
+    operatingTimeMins += Number.isFinite(o) ? o : 0;
     totalLossesMins += Number(e.total_losses_mins) || 0;
     idealRunTimeMins += Number(e.ideal_run_time_mins) || 0;
     totalQty += Number(e.total_qty) || 0;
@@ -425,7 +435,7 @@ function calculateTimeWeightedOEE(entries) {
     });
   });
 
-  const availabilityRate = plannedTimeMins > 0 ? Number(((operatingTimeMins / plannedTimeMins) * 100).toFixed(1)) : 0;
+  const availabilityRate = plannedTimeMins > 0 ? Number((Math.min(100, (operatingTimeMins / plannedTimeMins) * 100)).toFixed(1)) : 0;
   const performanceRate = operatingTimeMins > 0 ? Number(Math.min(100, (idealRunTimeMins / operatingTimeMins) * 100).toFixed(1)) : 0;
   const qualityRate = totalQty > 0 ? Number(Math.min(100, (goodQty / totalQty) * 100).toFixed(1)) : 100;
   const oeeRate = Number(((availabilityRate * performanceRate * qualityRate) / 10000).toFixed(1));
@@ -2948,80 +2958,11 @@ function updateLiveOeeCalculations() {
 }
 
 // ==============================================================================
-// EMAILJS BACKGROUND ALERT — fires silently when critical loss > 90 mins
-// Uses EmailJS public CDN (no server required, works from file:// and http://)
-// Service ID & Template must match your EmailJS dashboard
+// EMAIL PDF REPORT — fires on EVERY saved entry (full report with charts & graphs)
+// Uses js/email.js (EmailAlert.sendShiftReport) which builds a 2-page jsPDF report
+// (OEE benchmark chart + loss breakdown chart + 15-loss audit) and sends it via
+// EmailJS. No loss threshold, no breakdown gate — every save sends an email.
 // ==============================================================================
-
-const EMAIL_CONFIG = {
-  // ─────────────────────────────────────────────────────────────────────
-  // STEP: Sign up free at https://emailjs.com, create a service and
-  //       template, then replace the three values below.
-  // ─────────────────────────────────────────────────────────────────────
-  serviceId: 'service_prodtrack',   // Your EmailJS Service ID
-  templateId: 'template_1ekvs05',   // Your EmailJS Template ID
-  publicKey: 'Ev55sXxAA4E5n8dIF'      // Your EmailJS Public Key
-};
-
-// Loss keys that trigger email when any single one > 90 mins
-const CRITICAL_LOSS_KEYS = [
-  'loss_breakdown',
-  'loss_no_operator'
-];
-
-/**
- * Send a silent background email via EmailJS when critical downtime > 90 mins.
- * No alert or notification is shown on the UI.
- * @param {object} entry  The production entry record that was saved
- */
-async function sendDowntimeAlertEmail(entry) {
-  // Check if EmailJS SDK is loaded
-  if (typeof emailjs === 'undefined') {
-    console.warn('[Alert] EmailJS SDK not loaded — skipping alert email.');
-    return;
-  }
-
-  // Find which critical losses breached the 90-min threshold
-  const breachedLosses = [];
-  CRITICAL_LOSS_KEYS.forEach(key => {
-    const mins = Number(entry[key]) || 0;
-    if (mins > 90) {
-      const meta = LOSS_FIELDS.find(f => f.key === key);
-      breachedLosses.push({ label: meta ? meta.label : key, mins });
-    }
-  });
-
-  if (breachedLosses.length === 0) return; // Nothing breached threshold
-
-  const breachSummary = breachedLosses.map(b => `${b.label}: ${b.mins} mins`).join(', ');
-  const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true });
-
-  const templateParams = {
-    to_email: 'gedamabhijit4070@gmail.com',
-    machine_name: entry.machine_name || entry.machine_code,
-    machine_code: entry.machine_code,
-    log_date: entry.log_date,
-    shift: entry.shift,
-    operator: entry.operator_name || 'N/A',
-    breach_summary: breachSummary,
-    breakdown_mins: Number(entry.loss_breakdown) || 0,
-    no_operator_mins: Number(entry.loss_no_operator) || 0,
-    total_loss_mins: Number(entry.total_losses_mins) || 0,
-    availability: entry.availability_rate,
-    oee: entry.oee_rate,
-    remarks: entry.remarks || '',
-    timestamp: nowStr
-  };
-
-  try {
-    emailjs.init({ publicKey: EMAIL_CONFIG.publicKey });
-    await emailjs.send(EMAIL_CONFIG.serviceId, EMAIL_CONFIG.templateId, templateParams);
-    console.log('[Alert] Downtime alert email sent silently for', entry.machine_name);
-  } catch (err) {
-    // Fail silently — never show error to operator
-    console.warn('[Alert] Email send failed (non-critical):', err);
-  }
-}
 
 async function handleFormSubmit(e) {
   e.preventDefault();
@@ -3110,17 +3051,16 @@ async function handleFormSubmit(e) {
     await saveProductionEntry(entryRecord);
     showToast(`✓ Shift record saved for ${state.currentMachine.name}! (OEE: ${oeeResult.oeeRate}%)`, 'success');
 
-    // Fire background email alert silently — no UI notification
-    sendDowntimeAlertEmail(entryRecord);
-
     // Fire the Telegram supervisor alert immediately — non-blocking, never throws.
     if (typeof TelegramAlert !== 'undefined' && TelegramAlert.sendShiftAlert) {
       TelegramAlert.sendShiftAlert(entryRecord);
     }
 
-    // Same for WhatsApp — sends to everyone who has sent "hi" to the bot.
-    if (typeof WhatsappAlert !== 'undefined' && WhatsappAlert.sendShiftAlert) {
-      WhatsappAlert.sendShiftAlert(entryRecord);
+    // Fire the Email PDF report silently in the background on EVERY save.
+    if (typeof EmailAlert !== 'undefined' && EmailAlert.sendShiftReport) {
+      EmailAlert.sendShiftReport(entryRecord).catch((err) => {
+        console.error('[EmailAlert] Background send error:', err);
+      });
     }
 
     await renderMinimalMachines();

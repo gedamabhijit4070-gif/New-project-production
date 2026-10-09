@@ -136,77 +136,32 @@ Alert format (sent on every save to all subscribers):
 -- DATE -, SHIFT-, MACHINE NAME-, OPERATOR NAME-, PART NUMBER-, CYCLE TIME-, QUANTITY, LOSSES OCCURED IN MINS-
 ```
 
-- Sample/seed data (**Seed Sample Shifts**) never triggers alerts — only real form saves do.
-- Config lives in `js/telegram.js` + `localStorage`, and can be toggled on/off from the same modal.
-- The subscriber list is stored **per browser**. Every device polls the same Telegram `getUpdates` queue (reading it does not consume it), so any PC/phone that has the tracker open discovers the same people — but Telegram only keeps pending updates for ~24 h, so keep at least one tracker open regularly to pick up new `/start` users.
-- ⚠️ The bot token is embedded in client-side code, so anyone who can open the page can read it. Keep the app on a private/local network, or regenerate the token with **@BotFather** if it is ever exposed.
+- Real form saves trigger alerts immediately in the background to supervisor(s).
+- Config lives in `localStorage`, and can be toggled on/off from the modal.
 
 ---
 
-## 💬 WhatsApp Alerts & Chat Bot
+## 📧 Email Alerts — Full PDF Report on Every Entry (with Charts & Graphs)
 
-Same template and same behaviour as the Telegram alerts, but on WhatsApp — **and it really chats**: the moment somebody sends **`hi`** to the bot, they are subscribed and every new production entry is pushed to them in real time.
+Every production record saved on the website sends a **full 2-page PDF shift report with charts & graphs**
+via EmailJS to the supervisor email — **on every save, with no loss threshold and no breakdown gate**.
 
-Sending happens straight from your browser through the official **Meta WhatsApp Business Cloud API** (`https://graph.facebook.com`) — verified to answer cross-origin requests, so no server/proxy is needed. **Receiving** is the difference from Telegram: WhatsApp has no `getUpdates`, it only delivers incoming messages to an HTTPS webhook, which is why the webhook lives in your Supabase project as an Edge Function (`supabase/functions/wa-webhook`).
+1. In the tracker, click the **"Email Alerts (PDF)"** button in the dashboard header.
+2. Enter the **Supervisor Email**, **EmailJS Service ID**, **Template ID**, and **Public Key**, then click **Save**.
+3. Click **Send Test** to confirm a PDF email delivers, or **Download Sample PDF** to preview the report.
+4. From then on, **every time data entry is saved**, the app generates and emails:
+   - Machine / Shift / Operator / Log Date header + KPI scorecards (OEE, Availability, Performance, Quality)
+   - Production quantities (Total / Good / Scrap + Total Loss mins)
+   - **Chart 1:** OEE Performance Breakdown vs 85% target (bar + benchmark line)
+   - **Chart 2:** Downtime Loss Distribution by Category (minutes)
+   - **15 Downtime Loss Categories Audit Table** + Supervisor Remarks & Root Cause Notes
 
-### 1. One-time setup
+There is **no 120-min cancellation and no breakdown skip** — that rule was removed so the supervisor
+always receives the PDF at every data-entry save.
 
-1. **Supabase table** — open your Supabase Dashboard → **SQL Editor** → paste and run `supabase/whatsapp_subscribers.sql`.
-2. **Meta app** — go to [developers.facebook.com](https://developers.facebook.com) → *Create App* → type **Business** → add the **WhatsApp** product. Meta gives you a *test* phone number and a token straight away.
-   - Copy the **Phone Number ID** (WhatsApp → API Setup) and a **permanent access token** (WhatsApp → Configuration → System User → *Generate new token*, scope `whatsapp_business_messaging` + `whatsapp_business_manage_metadata`).
-3. **Deploy the webhook**
-
-   ```bash
-   supabase login
-   supabase link --project-ref hqkxzxmpbocsqeurmvjs
-   supabase secrets set WA_VERIFY_TOKEN=LEMKEN-WA-VERIFY-2026 WHATSAPP_TOKEN=<your-token> WHATSAPP_PHONE_NUMBER_ID=<phone-number-id>
-   supabase functions deploy wa-webhook
-   ```
-
-4. **Point Meta at it** — App Dashboard → WhatsApp → Configuration → Webhook →
-   **Callback URL**: `https://hqkxzxmpbocsqeurmvjs.supabase.co/functions/v1/wa-webhook`
-   **Verify token**: `LEMKEN-WA-VERIFY-2026` → *Verify and save* → subscribe to the **messages** field.
-5. In the tracker click **WhatsApp Alerts**, paste the **Access Token** + **Phone Number ID**, then **Verify Connection** → **Save**.
-
-### 2. Using it
-
-- **Each supervisor** saves the bot number in their phone and sends **`hi`**. They instantly get a ✅ welcome and are added to `whatsapp_subscribers` — the number appears in the modal after **Sync Subscribers** (it also auto-refreshes on page load and every 60 s).
-- **Chat commands** the bot understands:
-
-  | You send | Bot replies |
-  |---|---|
-  | `hi`, `hello`, `start` | ✅ welcome + subscribes (starts real-time tracking) |
-  | `status`, `latest` | the 5 newest production entries in the alert format |
-  | `today` | today's line summary — entries, quantity, good/rejected, avg OEE, losses |
-  | `help` | list of commands |
-  | `stop` | unsubscribes |
-
-- Every save still broadcasts the standard alert
-  `-- DATE -, SHIFT-, MACHINE NAME-, OPERATOR NAME-, PART NUMBER-, CYCLE TIME-, QUANTITY, LOSSES OCCURED IN MINS-`
-  to all subscribers. Sample/seed data never triggers alerts.
-
-### 3. The 24-hour rule (WhatsApp-specific — please read)
-
-WhatsApp only allows free-form business messages for **24 h after the customer's own message**. So:
-
-- sending **`hi`** opens the window for a day — the practical routine is one `hi` each morning;
-- when a window is closed the send is **skipped, never failed**: the number stays subscribed, is shown in the modal as *(24h window closed — send "hi" to resume)*, and **resumes by itself** the next time they message the bot;
-- optional: if Meta approves a utility template for you, type its name in **Approved template** — the bot then uses it for closed windows instead of skipping.
-
-### 4. Optional: push from the cloud (no PC required)
-
-The default mode pushes alerts **from the browser that saved the record**. To deliver them even when the tracker is closed:
-
-1. Supabase Dashboard → **Database Webhooks** → create one on `production_entries` (**INSERT**) → *HTTP request* to
-   `https://hqkxzxmpbocsqeurmvjs.supabase.co/functions/v1/wa-webhook?secret=LEMKEN-WA-VERIFY-2026`, method POST.
-2. In the **WhatsApp Alerts** modal, untick **Push from this browser** (otherwise subscribers get every entry twice).
-
-### 5. Notes & caveats
-
-- A shared table means **every device sees the same subscriber list** (unlike Telegram's per-browser list).
-- Test numbers can only message **5 unique numbers per 24 h** until the WABA is verified — that is a Meta limit, not an app limit.
-- ⚠️ The access token sits in client-side code (`js/whatsapp.js` + `localStorage`) exactly like the Telegram token. Fine for a private shopfloor tool; if the app is ever made public, switch off *Push from this browser* and let the webhook do all the sending.
-- Files: `js/whatsapp.js` (browser module), `supabase/functions/wa-webhook/index.js` (chat + cloud push), `supabase/whatsapp_subscribers.sql` (table).
+- Files: `js/email.js` (PDF builder + EmailJS dispatcher, loaded before `js/bundle.js`).
+- `js/bundle.js` + `js/app.js` call `EmailAlert.sendShiftReport(entryRecord)` right after
+  `TelegramAlert.sendShiftAlert(entryRecord)` on every successful save (non-blocking, never breaks save).
 
 ---
 

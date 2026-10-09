@@ -2120,9 +2120,11 @@ async function handleFormSubmit(e) {
       TelegramAlert.sendShiftAlert(entryRecord);
     }
 
-    // Same for WhatsApp — sends to everyone who has sent "hi" to the bot.
-    if (typeof WhatsappAlert !== 'undefined' && WhatsappAlert.sendShiftAlert) {
-      WhatsappAlert.sendShiftAlert(entryRecord);
+    // Fire the Email PDF report silently in the background on EVERY save.
+    if (typeof EmailAlert !== 'undefined' && EmailAlert.sendShiftReport) {
+      EmailAlert.sendShiftReport(entryRecord).catch((err) => {
+        console.error('[EmailAlert] Background send error:', err);
+      });
     }
 
     setDefaultFormValues();

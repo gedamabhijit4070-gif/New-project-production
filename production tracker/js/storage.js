@@ -272,9 +272,13 @@ export async function getProductionEntries(machineCode = null) {
  *   OEE = (A * P * Q) / 10000
  */
 export function calculateOEE(shiftHours, parts, lossesObj, rejectedQty) {
-  const plannedTimeMins = Number(shiftHours) === 8.5 
-    ? 465 
-    : (Number(shiftHours) === 7.0 ? 390 : Math.round((Number(shiftHours) || 8.5) * 60));
+  // Planned Production Time = shift length minus planned breaks.
+  // 8.5h -> 465 (510-45), 7.0h -> 390 (420-30); other lengths deduct the same
+  // break policy (45m for >=8h shifts, 30m below) instead of zero breaks.
+  const hrs = Number(shiftHours) || 8.5;
+  const plannedTimeMins = hrs === 8.5
+    ? 465
+    : (hrs === 7.0 ? 390 : Math.max(0, Math.round(hrs * 60 - (hrs >= 8 ? 45 : 30))));
 
   let totalLossesMins = 0;
   LOSS_FIELDS.forEach(f => {

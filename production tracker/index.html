@@ -47,6 +47,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Chart.js for High-End Animated Visuals -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF & autotable for Executive Shift PDF Reports -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
   <!-- EmailJS for Background Email Alerts -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -1010,9 +1013,9 @@
             <span>Telegram Alerts</span>
           </button>
 
-          <button class="db-status-pill" id="btn-open-whatsapp-settings" title="WhatsApp Alerts — sent to everyone who has sent 'hi' to the bot">
-            <span class="status-dot" style="background: var(--emerald-400);"></span>
-            <span>WhatsApp Alerts</span>
+          <button class="db-status-pill" id="btn-open-email-settings" title="Email Alerts (PDF) — Full reports with charts & graphs sent via email on every entry">
+            <span class="status-dot" style="background: var(--cyan-400);"></span>
+            <span>Email Alerts (PDF)</span>
           </button>
 
           <select id="dash-filter-machine" class="dashboard-select" style="display: none;">
@@ -1658,99 +1661,6 @@
   </div>
 
   <!-- ==================================================================== -->
-  <!-- MODAL: WHATSAPP ALERTS (mirror of the Telegram modal)                 -->
-  <!-- ==================================================================== -->
-  <div class="modal-overlay hidden" id="modal-whatsapp">
-    <div class="modal-card" style="max-width: 480px;">
-      <div class="modal-header">
-        <h3>WhatsApp Alerts — All Subscribers</h3>
-        <button class="modal-close-btn" id="btn-close-whatsapp-modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 18px;">
-          Every production record saved on this device is pushed to
-          <strong>everyone who has sent "hi"</strong> to the bot — instantly, via the official
-          Meta WhatsApp Business Cloud API (no server required for sending).
-          Incoming chats are handled by your Supabase <code>wa-webhook</code> function.
-        </p>
-
-        <div class="form-group" style="margin-bottom: 14px;">
-          <label for="cfg-wa-token">Permanent Access Token (Meta App)</label>
-          <input type="password" id="cfg-wa-token" placeholder="EAAG…" autocomplete="off" />
-        </div>
-
-        <div class="form-group" style="margin-bottom: 14px;">
-          <label for="cfg-wa-phone-id">Phone Number ID (WhatsApp Business)</label>
-          <input type="text" id="cfg-wa-phone-id" placeholder="123456789012345" autocomplete="off" />
-        </div>
-
-        <div class="form-group" style="margin-bottom: 14px;">
-          <label for="cfg-wa-template">
-            Approved template <span style="color: var(--text-muted); font-weight: 400;">(optional — for the 24 h window)</span>
-          </label>
-          <input type="text" id="cfg-wa-template" placeholder="leave empty unless Meta approved a template" autocomplete="off" />
-        </div>
-
-        <div class="form-group" style="margin-bottom: 14px;">
-          <label>
-            Subscribers who receive alerts
-            <span id="wa-sub-count" style="color: var(--emerald-400); font-weight: 600;">0</span>
-          </label>
-          <div id="wa-subscriber-list"
-            style="max-height: 168px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.25);">
-          </div>
-          <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <input type="text" id="cfg-wa-add-sub" placeholder="Add number manually, e.g. 919876543210"
-              autocomplete="off" style="flex: 1; min-width: 0;" />
-            <button type="button" class="btn btn-secondary" id="btn-wa-add-sub" style="flex: 0 0 auto;">Add</button>
-          </div>
-          <small style="display: block; margin-top: 6px; font-size: 0.75rem; color: var(--text-muted);">
-            <strong>New user?</strong> Save the bot number in WhatsApp and send <strong>hi</strong> — they are
-            detected automatically (or click <strong>Sync Subscribers</strong>). Each person gets a
-            ✅ welcome, and can be removed at any time.
-          </small>
-        </div>
-
-        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--text-secondary); cursor: pointer; margin-bottom: 6px;">
-          <input type="checkbox" id="cfg-wa-enabled" checked style="width: 16px; height: 16px; accent-color: var(--emerald-400);" />
-          Send alerts when a record is saved
-        </label>
-
-        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--text-secondary); cursor: pointer; margin-bottom: 6px;">
-          <input type="checkbox" id="cfg-wa-browser-push" checked style="width: 16px; height: 16px; accent-color: var(--emerald-400);" />
-          Push from <em>this browser</em> (turn OFF only after the Supabase database webhook is connected,
-          otherwise subscribers get the entry twice)
-        </label>
-
-        <div id="wa-bot-hint" style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 4px;"></div>
-
-        <div id="wa-settings-result"
-          style="display: none; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; margin-top: 12px;">
-        </div>
-
-        <div
-          style="margin-top: 16px; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: 0.78rem; color: var(--text-muted); line-height: 1.55;">
-          <strong style="color: var(--amber-400)">Alert format:</strong>
-          <code style="display: block; margin-top: 6px; white-space: pre-wrap; color: var(--text-secondary);">-- DATE -, SHIFT-, MACHINE NAME-, OPERATOR NAME-, PART NUMBER-, CYCLE TIME-, QUANTITY, LOSSES OCCURED IN MINS-</code>
-          <strong style="color: var(--rose-400); display: block; margin-top: 8px;">⚠ WhatsApp 24-hour rule:</strong>
-          Free-form messages are only allowed for 24 h after the person's own message — that is why every
-          supervisor simply sends <strong>hi</strong> each morning. Nobody is ever removed; closed chats
-          resume by themselves.
-        </div>
-      </div>
-      <div class="modal-footer" style="justify-content: space-between;">
-        <button type="button" class="btn btn-secondary" id="btn-wa-cancel">Close</button>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-          <button type="button" class="btn btn-secondary" id="btn-wa-verify">Verify Connection</button>
-          <button type="button" class="btn btn-secondary" id="btn-wa-sync" title="Read everyone who sent 'hi' from Supabase">Sync Subscribers</button>
-          <button type="button" class="btn btn-secondary" id="btn-wa-test">Send Test</button>
-          <button type="button" class="btn btn-primary" id="btn-wa-save">Save</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================================================================== -->
   <!-- MODAL: ANDROID MOBILE ACCESS & QR CODE                               -->
   <!-- ==================================================================== -->
   <div class="modal-overlay hidden" id="modal-mobile-qr">
@@ -1905,26 +1815,12 @@
             </svg>
             Sync from Database
           </button>
-          <button type="button" class="btn btn-secondary" id="btn-seed-sample-records" style="color: var(--amber-400); border-color: rgba(245, 158, 11, 0.4);" title="Seed realistic sample shifts across all 11 machines to test daily, weekly, monthly trends">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Seed Sample Shifts (Demo)
-          </button>
           <button type="button" class="btn btn-secondary" id="btn-open-telegram-settings-alt" style="color: var(--emerald-400); border-color: rgba(16, 185, 129, 0.4);" title="Telegram Alerts — sent to everyone who pressed /start">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="22" y1="2" x2="11" y2="13"></line>
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
             Telegram Alerts
-          </button>
-          <button type="button" class="btn btn-secondary" id="btn-open-whatsapp-settings-alt" style="color: var(--emerald-400); border-color: rgba(16, 185, 129, 0.4);" title="WhatsApp Alerts — sent to everyone who has sent 'hi' to the bot">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-            </svg>
-            WhatsApp Alerts
           </button>
           <button type="button" class="btn btn-secondary" id="btn-clear-all-records" style="color: var(--rose-400); border-color: rgba(244, 63, 94, 0.35);">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1939,6 +1835,68 @@
     </div>
   </div>
 
+  <!-- ==================================================================== -->
+  <!-- MODAL: EMAIL PDF REPORT ALERTS (EVERY ENTRY)                           -->
+  <!-- ==================================================================== -->
+  <div class="modal-overlay hidden" id="modal-email">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Email Alerts — PDF Report on Every Entry</h3>
+        <button class="modal-close-btn" id="btn-close-email-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 18px;">
+          Every production record saved sends a <strong>full PDF shift report with charts &amp; graphs</strong>
+          (OEE benchmark + loss breakdown + 15-loss audit) to the supervisor email via EmailJS.
+          No loss threshold — <strong>every save sends an email</strong>.
+        </p>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="cfg-email-recipient">Supervisor Email (recipient)</label>
+          <input type="email" id="cfg-email-recipient" placeholder="supervisor@company.com" autocomplete="off" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="cfg-email-service">EmailJS Service ID</label>
+          <input type="text" id="cfg-email-service" placeholder="service_prodtrack" autocomplete="off" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="cfg-email-template">EmailJS Template ID</label>
+          <input type="text" id="cfg-email-template" placeholder="template_1ekvs05" autocomplete="off" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="cfg-email-key">EmailJS Public Key</label>
+          <input type="password" id="cfg-email-key" placeholder="Ev55sXxAA4E5n8dIF" autocomplete="off" />
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--text-secondary); cursor: pointer; margin-bottom: 6px;">
+          <input type="checkbox" id="cfg-email-enabled" checked style="width: 16px; height: 16px; accent-color: var(--emerald-400);" />
+          Send PDF email when a record is saved (every entry)
+        </label>
+
+        <div id="email-settings-result"
+          style="display: none; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; margin-top: 12px;">
+        </div>
+
+        <div
+          style="margin-top: 16px; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: 0.78rem; color: var(--text-muted); line-height: 1.55;">
+          <strong style="color: var(--emerald-400)">Every-save PDF includes:</strong>
+          <span style="display: block; margin-top: 6px; color: var(--text-secondary);">OEE / Availability / Performance / Quality scorecards, production quantities, OEE benchmark chart, downtime loss chart, 15-loss audit table, remarks.</span>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-secondary" id="btn-email-cancel">Close</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btn-email-download-sample">Download Sample PDF</button>
+          <button type="button" class="btn btn-secondary" id="btn-email-test">Send Test</button>
+          <button type="button" class="btn btn-primary" id="btn-email-save">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
@@ -1946,8 +1904,8 @@
   <!-- v= cache-buster: bump when telegram.js changes so browsers refetch it -->
   <script src="js/telegram.js?v=20260926f"></script>
 
-  <!-- WhatsApp Alerts — mirror of the Telegram module (must load before bundle.js) -->
-  <script src="js/whatsapp.js?v=20260929a"></script>
+  <!-- Email PDF Reports — full report with charts & graphs on EVERY save (must load before bundle.js) -->
+  <script src="js/email.js?v=20261009e"></script>
 
   <!-- App Orchestrator Script (Standalone Universal Bundle + Modular Support) -->
   <script src="js/bundle.js"></script>
