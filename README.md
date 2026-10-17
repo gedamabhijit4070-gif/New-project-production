@@ -27,7 +27,8 @@ A web application designed for precision machine shops and CNC/VMC/HMC productio
 - Clicking any machine immediately opens **Page 2** pre-configured for that machine.
 
 ### Page 2: Dedicated Machine Production & 15-Loss Fill-up Tab
-- **Shift & Operator Parameters**: Date, Shift (`Shift A`, `Shift B`, `Shift C`), Shift Hours (`8.5 hrs / 465 net planned mins` or `7.0 hrs / 390 mins`), Operator Name.
+- **Shift & Operator Parameters**: Date, Shift (`Shift A` 6 AM – 2:30 PM, `Shift B` 2:30 PM – 11 PM, `Shift C` 11 PM – 6 AM), Shift Hours (12.0 / 8.5 / 8.0 / 7.5 / 7.0 / 6.0 hrs; auto-selected per shift — **A = 8.5, B = 8.5, C = 7.0**), Operator Name.
+- **Smart Log Date**: selecting `Shift C` automatically moves the Log Date to the **previous day** (Shift C starts at 11 PM), while `Shift A` / `Shift B` stamp today's date.
 - **Multi-Part Production Details**:
   - **Part Number 1**: Name/Number, Cycle Time (mins), Quantity Produced
   - **Part Number 2**: Name/Number, Cycle Time (mins), Quantity Produced
@@ -56,6 +57,7 @@ A web application designed for precision machine shops and CNC/VMC/HMC productio
 - "Save Record & View Dashboard" button saves the entry and transitions directly to Page 3.
 
 ### Page 3: Executive OEE & Loss Occurrence Dashboard
+- **Shift-Wise Analysis (Row 3 of the Control Console)**: `All Shifts` / `Shift A` / `Shift B` / `Shift C` quick-pills filter **the selected machine** (or the combined 11-machine matrix) so OEE, Availability, Performance, Quality, the 15-loss breakdown, the trend charts and the history table can be read shift by shift.
 - Automated visual analytics powered by **Chart.js**:
   - **Mathematical OEE Standard**:
     $$\text{Availability (A)} = \frac{\text{Operating Time}}{\text{Planned Shift Time}} \times 100$$
@@ -74,7 +76,10 @@ A web application designed for precision machine shops and CNC/VMC/HMC productio
 
 ## ⚡ How to Run Locally
 
-Run the Python HTTP server in this directory:
+**Easiest:** double-click **`start-server.bat`** — it starts the server and opens the app
+at `http://127.0.0.1:8123/index.html`.
+
+Or run the Python HTTP server in this directory:
 ```bash
 python -m http.server 3000
 ```
@@ -82,6 +87,14 @@ Then open your browser to:
 ```
 http://localhost:3000
 ```
+
+> ⚠️ **Always open the app through a URL (`http://…`), never by double-clicking
+> `index.html`.** Opening the file directly uses the `file://` protocol, whose
+> origin is `"null"`, so the browser blocks `manifest.json` with a CORS error
+> (`Access to manifest … has been blocked by CORS policy`) and then fails to
+> resolve the manifest `start_url` (`Unsafe attempt to load URL … index.html`).
+> These are PWA-install errors, not app errors — but serving over HTTP is the
+> correct way to run the tracker, and it keeps the console clean.
 
 ---
 
@@ -100,6 +113,57 @@ http://localhost:3000
      ```
    - **Method B (In-App Modal)**: Click the **"Supabase: Offline"** button in the header, paste your URL and Public Anon Key, and click **Save & Connect**.
 5. Once connected, the header will display **"🟢 Supabase: Connected"**, and every new production entry is stored live in your Supabase PostgreSQL cloud database!
+
+---
+
+## ✈️ Telegram Alerts (broadcast to every subscriber)
+
+Every production record saved on the website is pushed to **every user who has pressed `/start` on the bot** — instantly, with no server or proxy required, because the official Telegram Bot HTTP API (`https://api.telegram.org`) allows direct cross-origin browser requests.
+
+1. Open Telegram, search for **@BotFather**, and send `/newbot` to create a bot (or reuse an existing token).
+2. **Each person who wants alerts** opens the bot (e.g. **@lemken_tracker_bot**) and presses **/start**. They immediately receive a ✅ confirmation.
+3. In the tracker, click the **"Telegram Alerts"** button (dashboard header, or the footer of the *Entered Records* modal).
+4. Paste the **Bot Token**, then click **Sync Subscribers** — everyone who pressed `/start` is added to the list. (Auto-sync also runs on page load, every 60 s, and right before each broadcast, so a `/start` pressed while the tracker was closed still catches the next save.)
+5. Click **Send Test** to confirm delivery to all of them, then **Save**.
+
+The subscriber list is shown in the modal with each person's name and chat id, and each row can be **Remove**d. A chat id can be pasted manually if auto-discovery can't see it.
+
+**Nobody is ever dropped from the list.** If Telegram refuses a send (HTTP 403, i.e. the person blocked the bot), that chat is only *paused* for 10 minutes and retried automatically, so alerts resume by themselves the moment they unblock — or immediately when they press `/start` again. Paused chats are marked in the modal (`paused — blocked the bot`), and **Send Test** ignores the pause so you can check right away.
+
+Alert format (sent on every save to all subscribers):
+
+```
+-- DATE -, SHIFT-, MACHINE NAME-, OPERATOR NAME-, PART NUMBER-, CYCLE TIME-, QUANTITY, LOSSES OCCURED IN MINS-
+```
+
+- Real form saves trigger alerts immediately in the background to supervisor(s).
+- Config lives in `localStorage`, and can be toggled on/off from the modal.
+
+---
+
+## 📧 Email Alerts — One Collective Shift Report per Shift (A / B / C)
+
+Each shift (A, B, C) sends **ONE combined PDF report** via EmailJS — never one per machine.
+The trigger fires once the shift's data is collected: immediately when all 11 machines
+have an entry for that date + shift, otherwise on the first save after the shift window
+ends (+20 min grace). Partial coverage is fine — all 11 machines are NOT mandatory.
+
+1. In the tracker, click the **"Email Alerts (PDF)"** button in the dashboard header.
+2. Enter the **Supervisor Email**, **EmailJS Service ID**, **Template ID**, and **Public Key**, then click **Save**.
+3. Click **Send Collective Test** to confirm delivery, or **Download Collective Sample PDF** to preview the layout.
+4. The collective PDF per shift is systematically structured:
+   - Header + shift meta (date, machines covered, entries, planned/operating/loss totals)
+   - **Machine-by-machine analysis first** — per reporting machine: OEE gauge, A/P/Q bars,
+     loss analysis, parts produced, remarks (with World Class / Acceptable / Needs Attention status)
+   - **Machine Summary table** (operator, good, scrap, loss, color-coded OEE + status)
+   - Full PDF also uploaded per shift to Supabase Storage (`shift-reports` bucket) with `{{report_url}}` link.
+
+There is **no 120-min cancellation and no breakdown skip** — every collected shift sends exactly once
+(deduped per date + shift; re-saves after sending do not re-trigger).
+
+- Files: `js/email.js` (collective builder + dispatcher, loaded before `js/bundle.js`).
+- `js/bundle.js` + `js/app.js` call `EmailAlert.maybeSendCollectiveReport(entryRecord, allEntries)`
+  after every successful save (silent background, never breaks save). Telegram per-entry alerts unchanged.
 
 ---
 

@@ -1,0 +1,791 @@
+/* ==========================================================================
+   PAGE 2: DEDICATED MACHINE PRODUCTION & 13-LOSS FILL-UP FORM STYLES
+   ========================================================================== */
+
+/* Production Log Header: Back to Machines on Left, ONLY Check Entered Data on Top Right */
+.fillup-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(0, 159, 227, 0.18);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fillup-title-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  color: #ffffff;
+  border-color: var(--lemken-blue);
+  background: var(--bg-surface-elevated);
+}
+
+.active-machine-badge-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.active-machine-badge-group h2 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.machine-tag-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  background: rgba(0, 159, 227, 0.15);
+  color: var(--lemken-blue);
+  border: 1px solid rgba(0, 159, 227, 0.35);
+}
+
+/* Sole option in production log section top right corner */
+.fillup-right-action {
+  display: flex;
+  align-items: center;
+}
+
+.btn-check-entered-data {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(0, 159, 227, 0.16), rgba(2, 132, 199, 0.28));
+  border: 1.5px solid var(--lemken-blue);
+  color: #ffffff;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--lemken-blue-glow);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-check-entered-data:hover {
+  background: linear-gradient(135deg, var(--lemken-blue), #0284c7);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(0, 159, 227, 0.55);
+}
+
+.btn-check-entered-data svg {
+  stroke: currentColor;
+}
+
+.badge-entered-count {
+  background: #ffffff;
+  color: #0284c7;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Form Cards Layout */
+.form-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.form-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.panel-title svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--cyan-400);
+  fill: none;
+  stroke-width: 2;
+}
+
+.panel-step-badge {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--cyan-400);
+  background: rgba(6, 182, 212, 0.1);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* Grids for inputs */
+.grid-4-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.grid-3-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--cyan-500);
+  box-shadow: 0 0 0 2px var(--cyan-glow);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Multi-Part Production Rows */
+.parts-row-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.part-entry-row {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 80px 2fr 1.2fr 1.2fr;
+  gap: 14px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .part-entry-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.part-badge-tag {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--cyan-400);
+  background: rgba(6, 182, 212, 0.12);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+/* Downtime Loss Dropdown Quick-Logger Console */
+.loss-dropdown-console {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8));
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 15px rgba(6, 182, 212, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.loss-dropdown-console::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan-500), var(--rose-500), var(--amber-500));
+}
+
+.loss-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.loss-dropdown-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--cyan-300);
+  letter-spacing: 0.02em;
+}
+
+.loss-dropdown-title svg {
+  stroke: var(--cyan-400);
+}
+
+.loss-dropdown-hint {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.loss-dropdown-controls {
+  display: grid;
+  grid-template-columns: 2fr 1.3fr auto;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.loss-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loss-select-group label,
+.loss-minutes-group label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.dropdown-loss-select {
+  background: rgba(3, 7, 18, 0.75) !important;
+  border: 1px solid rgba(6, 182, 212, 0.4) !important;
+  border-radius: var(--radius-md) !important;
+  color: #f1f5f9 !important;
+  font-weight: 600;
+  font-size: 0.88rem !important;
+  padding: 10px 14px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropdown-loss-select:focus {
+  border-color: var(--cyan-400) !important;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2) !important;
+}
+
+.dropdown-loss-select optgroup {
+  background: #0f172a;
+  color: var(--cyan-400);
+  font-weight: 700;
+  padding: 6px 0;
+}
+
+.dropdown-loss-select option {
+  background: #030712;
+  color: #f8fafc;
+  font-weight: 500;
+  padding: 8px 10px;
+}
+
+.loss-minutes-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loss-stepper-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loss-stepper-wrap input {
+  width: 72px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--rose-400);
+  background: rgba(3, 7, 18, 0.75);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+
+.dropdown-loss-chips {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-dropdown-chip {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: var(--rose-400);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-dropdown-chip:hover {
+  background: rgba(244, 63, 94, 0.25);
+  border-color: var(--rose-400);
+  transform: translateY(-1px);
+}
+
+.btn-dropdown-chip:active {
+  transform: scale(0.94);
+}
+
+.loss-btn-group {
+  display: flex;
+  align-items: flex-end;
+}
+
+.btn-apply-loss {
+  white-space: nowrap;
+  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.3);
+}
+
+.loss-dropdown-status {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+
+/* Card highlight pulse effect */
+.loss-input-card.highlight-pulse {
+  animation: cardGlowPulse 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes cardGlowPulse {
+  0% {
+    border-color: var(--cyan-400);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4), 0 0 20px rgba(6, 182, 212, 0.3);
+    background: rgba(6, 182, 212, 0.12);
+  }
+  50% {
+    border-color: var(--rose-400);
+    box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.4), 0 0 25px rgba(244, 63, 94, 0.35);
+    background: rgba(244, 63, 94, 0.15);
+  }
+  100% {
+    border-color: var(--border-subtle);
+    box-shadow: none;
+    background: rgba(0, 0, 0, 0.25);
+  }
+}
+
+@media (max-width: 900px) {
+  .loss-dropdown-controls {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .loss-stepper-wrap {
+    flex-wrap: wrap;
+  }
+  .btn-apply-loss {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* 13 Losses Input Grid */
+.losses-13-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+
+.loss-input-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.loss-input-card:focus-within {
+  border-color: var(--rose-400);
+  background: rgba(244, 63, 94, 0.05);
+}
+
+.loss-label-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.loss-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.loss-cat-tag {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.loss-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-chips {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-loss-chip {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: var(--rose-400);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.btn-loss-chip:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: var(--rose-400);
+  transform: translateY(-1px);
+}
+
+.btn-loss-chip:active {
+  background: rgba(244, 63, 94, 0.4);
+  transform: scale(0.92);
+}
+
+.loss-number-field {
+  width: 72px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--rose-400);
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 6px 8px !important;
+}
+
+.loss-number-field:focus {
+  border-color: var(--rose-400) !important;
+  box-shadow: 0 0 0 2px var(--rose-glow) !important;
+}
+
+/* Android & Mobile Touch Adjustments */
+@media (max-width: 768px) {
+  .losses-13-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .loss-input-card {
+    padding: 10px 12px;
+  }
+
+  .btn-loss-chip {
+    min-height: 38px;
+    min-width: 44px;
+    font-size: 0.82rem;
+  }
+
+  .loss-number-field {
+    width: 75px;
+    min-height: 38px;
+    font-size: 1.05rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px; /* Prevents auto-zoom on Android Chrome focus */
+  }
+
+  .form-action-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .form-action-footer button {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+}
+
+/* Live OEE Auto-Calculated Ribbon */
+.oee-calc-ribbon {
+  background: linear-gradient(135deg, rgba(11, 22, 40, 0.95), rgba(15, 30, 56, 0.95));
+  border: 1px solid var(--cyan-500);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 0 24px rgba(6, 182, 212, 0.15);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  text-align: center;
+}
+
+.calc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calc-block-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.calc-block-val {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.calc-block-val.highlight-oee {
+  font-size: 1.8rem;
+  background: linear-gradient(90deg, var(--cyan-400), var(--emerald-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.form-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding-bottom: 40px;
+}
+
+/* ==========================================
+   ANDROID / MOBILE FORM OPTIMIZATIONS
+   Touch-friendly inputs, selects, buttons,
+   full-width layout, readable type scale.
+   ========================================== */
+@media (max-width: 768px) {
+  /* Form panels: tighter padding */
+  .form-panel { padding: 16px; }
+
+  /* Grid collapses to 2 or 1 col */
+  .grid-4-col {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .parts-row-container { gap: 14px; }
+  .part-entry-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Inputs & selects: 48px touch height */
+  .form-group input,
+  .form-group select,
+  .form-group textarea,
+  .fillup-quick-switcher select,
+  .dropdown-loss-select,
+  #input-dropdown-loss-mins {
+    min-height: 48px;
+    font-size: 1rem;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    width: 100%;
+  }
+  .form-group label { font-size: 0.82rem; }
+
+  /* Loss grid: 1 col on mobile */
+  .losses-13-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .loss-input-card { padding: 12px; }
+  .loss-name { font-size: 0.82rem; }
+  .loss-number-field {
+    min-height: 48px;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  /* Dropdown quick-logger: stack vertically */
+  .loss-dropdown-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .loss-select-group,
+  .loss-minutes-group { width: 100%; }
+  .loss-stepper-wrap { flex-direction: column; gap: 8px; }
+  .dropdown-loss-chips {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .btn-dropdown-chip {
+    min-height: 44px;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+  }
+  .btn-apply-loss {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+  }
+
+  /* Quick-chip on loss cards */
+  .btn-loss-chip {
+    min-height: 40px;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  /* OEE Ribbon: wrap to 2 col on mobile */
+  .oee-calc-ribbon {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 16px;
+    gap: 12px;
+  }
+  .calc-block-val { font-size: 1.15rem; }
+  .calc-block-val.highlight-oee { font-size: 1.4rem; }
+
+  /* Form action footer: stack buttons */
+  .form-action-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .form-action-footer .btn {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+    justify-content: center;
+  }
+
+  /* Machine cards */
+  .minimal-machines-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Back button */
+  .back-btn {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 0.84rem;
+  }
+  .fillup-top-nav {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .fillup-quick-switcher {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-4-col { grid-template-columns: 1fr; }
+  .part-entry-row { grid-template-columns: 1fr; }
+  .losses-13-grid { grid-template-columns: 1fr; }
+  .minimal-machines-grid { grid-template-columns: 1fr; }
+  .oee-calc-ribbon { grid-template-columns: 1fr 1fr; }
+}
