@@ -49,58 +49,10 @@
   // (51200 chars). The vector PDF is ~10-20KB, so it fits inline directly.
   const PDF_BUDGET_CHARS = 46000;
 
-  // Supabase Storage delivery: each entry's PDF is also uploaded to a public
-  // `shift-reports` bucket and the email carries its download link
-  // ({{report_url}}) alongside the inline copy. Same credentials pattern as
-  // js/bundle.js SUPABASE_CONFIG.
-  const REPORT_BUCKET = 'shift-reports';
-
-  // Separate storage project (optional): PDF uploads go HERE, so the main
-  // production database is never touched. Fill Storage URL + Key in the Email
-  // modal. When empty, falls back to the main Supabase config (read-only use —
-  // uploads simply fail there until a bucket exists, nothing is modified).
-  const STORAGE_CFG_KEY = 'prodtracker_storage_config';
-
-  function getSupabaseClient() {
-    try {
-      if (!window.supabase) return null;
-      let url = '', key = '';
-      const s = getStorageCfg();
-      url = s.url;
-      key = s.key;
-      if (!url || !key) {
-        try {
-          const raw = localStorage.getItem('prodtracker_supabase_config');
-          if (raw) {
-            const c = JSON.parse(raw);
-            url = (c.url || '').trim();
-            key = (c.key || '').trim();
-          }
-        } catch (_) { }
-      }
-      if (!url || !key) {
-        url = 'https://hqkxzxmpbocsqeurmvjs.supabase.co';
-        key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhxa3h6eG1wYm9jc3FldXJtdmpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2OTA4OTQsImV4cCI6MjEwNDI2Njg5NH0.ecizDXHhbaRLqswZWhVtzuljN_1Fi41SF2Yr8zazsUA';
-      }
-      return window.supabase.createClient(url, key);
-    } catch (err) {
-      console.warn('[EmailAlert] Supabase client unavailable:', err);
-      return null;
-    }
-  }
-
-  async function uploadPdfAndGetUrl(client, blob, filename, logDate) {
-    const path = `${logDate || 'nodate'}/${filename}`;
-    const { error: upErr } = await client.storage.from(REPORT_BUCKET).upload(path, blob, {
-      contentType: 'application/pdf',
-      upsert: true
-    });
-    if (upErr) throw upErr;
-    const { data } = client.storage.from(REPORT_BUCKET).getPublicUrl(path);
-    if (!data || !data.publicUrl) throw new Error('No public URL (bucket may not be public)');
-    return data.publicUrl;
-  }
-
+  // Light-theme palette + vector visuals (pure jsPDF shapes, zero images —
+  // keeps the PDF tiny enough to mail). Layout unchanged.
+  // Executive palette: deep navy + gold, warm-cream cards. Professional
+  // document look (matches the email template's navy/gold theme).
   function getConfig() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -127,31 +79,6 @@
     }
   }
 
-  function getStorageCfg() {
-    try {
-      const raw = localStorage.getItem(STORAGE_CFG_KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        return { url: (s.url || '').trim(), key: (s.key || '').trim() };
-      }
-    } catch (_) { }
-    return { url: '', key: '' };
-  }
-
-  function saveStorageCfg(url, key) {
-    try {
-      localStorage.setItem(STORAGE_CFG_KEY, JSON.stringify({ url, key }));
-      return true;
-    } catch (e) {
-      console.error('[EmailAlert] Failed to save storage config', e);
-      return false;
-    }
-  }
-
-  // Light-theme palette + vector visuals (pure jsPDF shapes, zero images —
-  // keeps the PDF tiny enough to mail). Layout unchanged.
-  // Executive palette: deep navy + gold, warm-cream cards. Professional
-  // document look (matches the email template's navy/gold theme).
   const LIGHT = {
     brand: [11, 29, 58],        // navy — primary surfaces
     brandDark: [7, 19, 40],     // deeper navy — rules/shadows
@@ -759,21 +686,6 @@
       console.log(`[EmailAlert] Building collective shift report for ${key} (${covered} machines)...`);
       const { blob, dataUri, filename } = await generateCollectiveShiftReportPDF(logDate, shift, list);
 
-      let reportUrl = '';
-      let uploadError = '';
-      const client = getSupabaseClient();
-      if (client) {
-        try {
-          reportUrl = await uploadPdfAndGetUrl(client, blob, filename, logDate);
-          console.log('[EmailAlert] Collective PDF uploaded:', reportUrl);
-        } catch (upErr) {
-          uploadError = (upErr && upErr.message) || String(upErr);
-          console.warn('[EmailAlert] Storage upload failed, email carries full machine table instead:', uploadError);
-        }
-      } else {
-        uploadError = 'Supabase library not loaded (offline?)';
-      }
-
       const agg = aggregateEntries(list);
       const topLosses = Object.keys(LOSS_LABELS)
         .map((k) => ({ label: LOSS_LABELS[k], mins: agg.losses[k] || 0 }))
@@ -819,9 +731,8 @@
         remarks: 'See PDF for machine-wise remarks.',
         timestamp: nowStr,
         report_filename: filename,
-        report_url: reportUrl,
         machine_table: machineRowsHtml,
-        report_pdf: (!reportUrl && dataUri && dataUri.length <= PDF_BUDGET_CHARS) ? dataUri : '',
+        report_pdf: (dataUri && dataUri.length <= PDF_BUDGET_CHARS) ? dataUri : '',
         attachment: ''
       };
 
@@ -829,7 +740,7 @@
       const resp = await emailjs.send(config.serviceId, config.templateId, templateParams);
       markSent(key);
       console.log('[EmailAlert] Collective shift report email sent:', key);
-      return { success: true, resp, filename, reportUrl, key, uploadError };
+      return { success: true, resp, filename, key };
     } finally {
       sendingKeys.delete(key);
     }
@@ -840,23 +751,43 @@
    * window ended (+20 min grace), has entries, and was never sent. Reads
    * straight from the existing entries — no new database, no save needed.
    */
+  // Fixed daily trigger times per shift (report for the shift that just ended):
+  // Shift A → 15:00   Shift B → 12:00   Shift C → 07:00
+  const SHIFT_TRIGGER = {
+    'Shift A': { h: 15, m: 0 },
+    'Shift B': { h: 12, m: 0 },
+    'Shift C': { h: 7, m: 0 },
+  };
+
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  // Log-date a shift's report should use. Shift C carries the previous
+  // calendar day (per your dating rule), everyone else uses the same day.
+  function reportLogDateFor(shift, d) {
+    const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (shift === 'Shift C') out.setDate(out.getDate() - 1);
+    return iso(out);
+  }
+
   async function checkDueShiftReports(allEntries) {
     const results = [];
     try {
       const now = new Date();
-      const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const days = [new Date(midnight.getTime() - 86400000), midnight];
-      for (const d of days) {
-        const ld = iso(d);
-        for (const shift of ['Shift A', 'Shift B', 'Shift C']) {
+      // Check today and yesterday so the app catches up on missed triggers
+      // after being closed overnight.
+      for (const shift of ['Shift A', 'Shift B', 'Shift C']) {
+        const t = SHIFT_TRIGGER[shift];
+        for (const offset of [0, -1]) {
+          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          d.setDate(d.getDate() + offset);
+          const trigger = new Date(d.getFullYear(), d.getMonth(), d.getDate(), t.h, t.m, 0);
+          if (Date.now() < trigger.getTime()) continue; // trigger not reached yet
+          const ld = reportLogDateFor(shift, d);
           const key = `${ld}|${shift}`;
           if (getSentKeys().includes(key) || sendingKeys.has(key)) continue;
-          const end = getShiftEnd(ld, shift);
-          if (!end || Date.now() <= end.getTime() + 20 * 60000) continue;
           const list = (allEntries || []).filter((e) => e && e.log_date === ld && e.shift === shift);
           if (list.length === 0) continue;
-          console.log(`[EmailAlert] Shift window ended for ${key} — auto-sending collective report.`);
+          console.log(`[EmailAlert] Trigger time reached for ${key} — auto-sending collective report.`);
           results.push(await dispatchCollectiveReport(ld, shift, list));
         }
       }
@@ -868,7 +799,9 @@
 
   /**
    * Save-path trigger: 11/11 machines sends immediately; otherwise the timer
-   * sweep (checkDueShiftReports) sends after the shift window ends.
+   * sweep (checkDueShiftReports) sends once the next shift starts (= this
+   * shift ends). Partial coverage is fine — the report covers whatever
+   * machines reported.
    */
   async function maybeSendCollectiveReport(savedEntry, allEntries) {
     try {
@@ -883,7 +816,7 @@
       const covered = new Set(list.map((e) => e.machine_code).filter(Boolean)).size;
 
       const end = getShiftEnd(logDate, shift);
-      const shiftOver = end ? (Date.now() > end.getTime() + 20 * 60000) : false;
+      const shiftOver = end ? Date.now() >= end.getTime() : false;
       if (covered < 11 && !shiftOver) {
         console.log(`[EmailAlert] Collective ${key}: ${covered}/11 machines, shift still open — waiting.`);
         return { pending: true, covered };
@@ -927,40 +860,21 @@
     });
     const keys = Object.keys(groups).sort();
     if (keys.length === 0) return { skipped: true, reason: 'No dated entries found' };
-    // TEST scope: today's Shift A only (local calendar date).
+    // TEST scope: yesterday's Shift B (local calendar date).
     const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const key = `${today}|Shift A`;
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yest = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    const key = `${yest}|Shift B`;
     const list = groups[key] || [];
-    if (list.length === 0) return { skipped: true, reason: `No Shift A entries for today (${today}) — save Shift A records first` };
-    const logDate = today;
-    const shift = 'Shift A';
+    if (list.length === 0) return { skipped: true, reason: `No Shift B entries for yesterday (${yest}) — save Shift B records first` };
+    const logDate = yest;
+    const shift = 'Shift B';
     const covered = new Set(list.map((e) => e.machine_code).filter(Boolean)).size;
 
     try {
       console.log(`[EmailAlert] Building TEST collective report for ${key} (${covered} machines)...`);
       const dedupedList = dedupeByMachine(list);
       const { blob, dataUri, filename } = await generateCollectiveShiftReportPDF(logDate, shift, dedupedList);
-
-      let reportUrl = '';
-      let uploadError = '';
-      const client = getSupabaseClient();
-      if (client) {
-        try {
-          const { error: upErr } = await client.storage.from(REPORT_BUCKET).upload(`test/${filename}`, blob, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
-          if (upErr) throw upErr;
-          const { data } = client.storage.from(REPORT_BUCKET).getPublicUrl(`test/${filename}`);
-          reportUrl = (data && data.publicUrl) || '';
-        } catch (upErr) {
-          uploadError = (upErr && upErr.message) || String(upErr);
-          console.warn('[EmailAlert] Test upload failed, falling back to inline PDF:', uploadError);
-        }
-      } else {
-        uploadError = 'Supabase library not loaded (offline?)';
-      }
 
       const agg = aggregateEntries(dedupedList);
       const topLosses = Object.keys(LOSS_LABELS)
@@ -1007,16 +921,15 @@
         remarks: 'TEST alert — see PDF for machine-wise remarks.',
         timestamp: nowStr,
         report_filename: filename,
-        report_url: reportUrl,
         machine_table: machineRowsHtml,
-        report_pdf: (!reportUrl && dataUri && dataUri.length <= PDF_BUDGET_CHARS) ? dataUri : '',
+        report_pdf: (dataUri && dataUri.length <= PDF_BUDGET_CHARS) ? dataUri : '',
         attachment: ''
       };
 
       emailjs.init({ publicKey: config.publicKey });
       const resp = await emailjs.send(config.serviceId, config.templateId, templateParams);
       console.log('[EmailAlert] TEST collective report sent:', key);
-      return { success: true, resp, filename, reportUrl, key, covered, uploadError };
+      return { success: true, resp, filename, key, covered };
     } catch (err) {
       const detail = (err && (err.text || err.message)) || String(err);
       console.error('[EmailAlert] TEST collective send failed:', detail, err);
@@ -1091,17 +1004,12 @@
       const inTemplate = document.getElementById('cfg-email-template');
       const inKey = document.getElementById('cfg-email-key');
       const chkEnabled = document.getElementById('cfg-email-enabled');
-      const inStorageUrl = document.getElementById('cfg-storage-url');
-      const inStorageKey = document.getElementById('cfg-storage-key');
 
       if (inEmail) inEmail.value = cfg.recipient || '';
       if (inService) inService.value = cfg.serviceId || '';
       if (inTemplate) inTemplate.value = cfg.templateId || '';
       if (inKey) inKey.value = cfg.publicKey || '';
       if (chkEnabled) chkEnabled.checked = cfg.enabled !== false;
-      const scfg = getStorageCfg();
-      if (inStorageUrl) inStorageUrl.value = scfg.url || '';
-      if (inStorageKey) inStorageKey.value = scfg.key || '';
 
       const resultBox = document.getElementById('email-settings-result');
       if (resultBox) resultBox.style.display = 'none';
@@ -1129,8 +1037,6 @@
         const inTemplate = document.getElementById('cfg-email-template');
         const inKey = document.getElementById('cfg-email-key');
         const chkEnabled = document.getElementById('cfg-email-enabled');
-        const inStorageUrl = document.getElementById('cfg-storage-url');
-        const inStorageKey = document.getElementById('cfg-storage-key');
 
         const updated = {
           enabled: chkEnabled ? chkEnabled.checked : true,
@@ -1141,10 +1047,6 @@
         };
 
         saveConfig(updated);
-        saveStorageCfg(
-          inStorageUrl ? inStorageUrl.value.trim() : '',
-          inStorageKey ? inStorageKey.value.trim() : ''
-        );
 
         const resultBox = document.getElementById('email-settings-result');
         if (resultBox) {
@@ -1168,21 +1070,16 @@
           resultBox.style.background = 'rgba(6, 182, 212, 0.15)';
           resultBox.style.border = '1px solid rgba(6, 182, 212, 0.35)';
           resultBox.style.color = '#06b6d4';
-          resultBox.textContent = "Building today's Shift A collective test report...";
+          resultBox.textContent = "Building yesterday's Shift B collective test report...";
         }
 
         const res = await sendCollectiveTest();
         if (resultBox) {
-          if (res.success && res.reportUrl) {
+          if (res.success) {
             resultBox.style.background = 'rgba(16, 185, 129, 0.15)';
             resultBox.style.border = '1px solid rgba(16, 185, 129, 0.35)';
             resultBox.style.color = '#10b981';
             resultBox.textContent = `✓ TEST collective sent (${res.covered} machines, ${res.key}) — real shift trigger unaffected.`;
-          } else if (res.success) {
-            resultBox.style.background = 'rgba(245, 158, 11, 0.15)';
-            resultBox.style.border = '1px solid rgba(245, 158, 11, 0.35)';
-            resultBox.style.color = '#f59e0b';
-            resultBox.textContent = `Email sent BUT download link missing — upload failed: ${res.uploadError || 'unknown'}. Run the shift-reports bucket SQL in Supabase, then retest.`;
           } else if (res.skipped) {
             resultBox.style.background = 'rgba(245, 158, 11, 0.15)';
             resultBox.style.border = '1px solid rgba(245, 158, 11, 0.35)';

@@ -1871,19 +1871,6 @@
           <input type="password" id="cfg-email-key" placeholder="Ev55sXxAA4E5n8dIF" autocomplete="off" />
         </div>
 
-        <div style="margin: 14px 0; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-          <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">PDF file hosting (separate project — main database untouched)</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">Create a free Supabase project just for PDF files, run the bucket SQL there, and paste its URL + anon key. Leave empty to skip the download link.</div>
-          <div class="form-group" style="margin-bottom: 10px;">
-            <label for="cfg-storage-url">Storage Project URL</label>
-            <input type="text" id="cfg-storage-url" placeholder="https://your-pdfs.supabase.co" autocomplete="off" />
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label for="cfg-storage-key">Storage Anon Key</label>
-            <input type="password" id="cfg-storage-key" placeholder="eyJhbGciOi..." autocomplete="off" />
-          </div>
-        </div>
-
         <label style="display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--text-secondary); cursor: pointer; margin-bottom: 6px;">
           <input type="checkbox" id="cfg-email-enabled" checked style="width: 16px; height: 16px; accent-color: var(--emerald-400);" />
           Send PDF email when a record is saved (every entry)
@@ -1903,7 +1890,7 @@
         <button type="button" class="btn btn-secondary" id="btn-email-cancel">Close</button>
         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
           <button type="button" class="btn btn-secondary" id="btn-email-download-collective-sample">Download Collective Sample PDF</button>
-          <button type="button" class="btn btn-secondary" id="btn-email-test-collective" title="Email today's Shift A data as one collective test report (does not affect the real per-shift trigger)">Send Today's Shift A Test</button>
+          <button type="button" class="btn btn-secondary" id="btn-email-test-collective" title="Email yesterday's Shift B data as one collective test report (does not affect the real per-shift trigger)">Send Yesterday's Shift B Test</button>
           <button type="button" class="btn btn-primary" id="btn-email-save">Save</button>
         </div>
       </div>
@@ -1918,7 +1905,7 @@
   <script src="js/telegram.js?v=20260926f"></script>
 
   <!-- Email PDF Reports — full report with charts & graphs on EVERY save (must load before bundle.js) -->
-  <script src="js/email.js?v=20261017a"></script>
+  <script src="js/email.js?v=20261020b"></script>
 
   <!-- App Orchestrator Script (Standalone Universal Bundle + Modular Support) -->
   <script src="js/bundle.js"></script>
